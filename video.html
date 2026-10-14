@@ -1,0 +1,1090 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Video Studio | PixelShift Studio</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .video-workspace-extra{display:grid;gap:14px;margin-top:18px}
+    .timeline-shell{padding:14px;border:1px solid var(--border);border-radius:14px;background:var(--surface,rgba(127,127,127,.06))}
+    .timeline-head,.timeline-times,.timeline-footer{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+    .timeline-track{position:relative;height:76px;margin:12px 0 8px;border-radius:10px;background:linear-gradient(135deg,rgba(115,105,140,.22),rgba(90,90,110,.12));overflow:hidden;touch-action:pan-y;user-select:none}
+    .timeline-track:before{content:"VIDEO TIMELINE";position:absolute;inset:0;display:grid;place-items:center;font-size:.72rem;letter-spacing:.12em;color:var(--muted,#888);pointer-events:none}
+    .timeline-dim{position:absolute;top:0;bottom:0;background:rgba(15,15,20,.55);pointer-events:none}
+    .timeline-selection{position:absolute;top:0;bottom:0;border:2px solid #8b5cf6;border-radius:5px;box-sizing:border-box;cursor:grab;background:rgba(139,92,246,.13)}
+    .timeline-selection:active{cursor:grabbing}
+    .trim-handle{position:absolute;top:0;bottom:0;width:14px;background:#8b5cf6;cursor:ew-resize;z-index:3;display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;touch-action:none}
+    .trim-handle.left{left:-1px;border-radius:4px 0 0 4px}.trim-handle.right{right:-1px;border-radius:0 4px 4px 0}
+    .playhead{position:absolute;top:0;bottom:0;width:2px;background:#ffcc66;z-index:4;pointer-events:none;box-shadow:0 0 0 1px rgba(0,0,0,.12)}
+    .playhead:before{content:"";position:absolute;top:0;left:-4px;border-left:5px solid transparent;border-right:5px solid transparent;border-top:7px solid #ffcc66}
+    .control-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+    .control-grid label{display:grid;gap:7px}.control-grid input[type=range]{width:100%}
+    .button-row{display:flex;gap:8px;flex-wrap:wrap}.button-row button{flex:1 1 auto}
+    .shortcut-list{display:grid;grid-template-columns:1fr auto;gap:8px 14px;font-size:.9rem}.shortcut-list kbd{border:1px solid var(--border);border-radius:5px;padding:2px 6px;font:inherit;white-space:nowrap}
+    #videoPlayer{transform-origin:center center;max-width:100%;max-height:65vh}
+    .preview-content{overflow:hidden}
+    .video-stage-preview{position:relative;display:inline-block;max-width:100%;line-height:0;vertical-align:top}
+    .video-stage-preview video{display:block}
+    .crop-frame-overlay{position:absolute;left:0;top:0;width:100%;height:100%;box-sizing:border-box;border:2px solid #a78bfa;box-shadow:0 0 0 9999px rgba(12,8,25,.42);pointer-events:none;z-index:5;cursor:move;touch-action:none;user-select:none}.video-stage-preview.crop-adjust-active .crop-frame-overlay{pointer-events:auto}.crop-frame-overlay.dragging{transition:none}.crop-handle{position:absolute;width:12px;height:12px;border:2px solid #fff;border-radius:3px;background:#8b5cf6;box-shadow:0 1px 5px rgba(0,0,0,.45);z-index:2;touch-action:none}.crop-handle.nw{left:-7px;top:-7px;cursor:nwse-resize}.crop-handle.n{left:calc(50% - 6px);top:-7px;cursor:ns-resize}.crop-handle.ne{right:-7px;top:-7px;cursor:nesw-resize}.crop-handle.e{right:-7px;top:calc(50% - 6px);cursor:ew-resize}.crop-handle.se{right:-7px;bottom:-7px;cursor:nwse-resize}.crop-handle.s{left:calc(50% - 6px);bottom:-7px;cursor:ns-resize}.crop-handle.sw{left:-7px;bottom:-7px;cursor:nesw-resize}.crop-handle.w{left:-7px;top:calc(50% - 6px);cursor:ew-resize}.crop-frame-overlay[hidden]{display:none}
+    .frame-preview img{max-width:100%;height:auto;display:block}
+    .small-note{font-size:.85rem;color:var(--muted,#888)}
+    .setting-group button:disabled{opacity:.5;cursor:not-allowed}
+    .export-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+    .export-grid label{display:grid;gap:7px}
+    .export-progress{height:10px;border-radius:99px;overflow:hidden;background:var(--border);margin-top:12px}
+    .export-progress span{display:block;width:0;height:100%;background:linear-gradient(90deg,#8b5cf6,#c084fc);transition:width .15s ease}
+    .export-status{margin-top:10px;font-size:.9rem;overflow-wrap:anywhere}
+    .export-status[data-kind="error"]{color:#ef4444}.export-status[data-kind="success"]{color:#16a34a}
+    .crop-controls{display:grid;gap:12px}
+    .crop-presets{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+    .crop-presets button.active{border-color:#8b5cf6;background:rgba(139,92,246,.15);box-shadow:inset 0 0 0 1px #8b5cf6}
+    .crop-slider{display:grid;grid-template-columns:minmax(0,1fr) 64px;gap:8px;align-items:center}
+    .crop-slider label{display:grid;gap:6px}.crop-slider input[type=range]{width:100%}
+    .crop-slider output{text-align:right;font-variant-numeric:tabular-nums;color:var(--muted,#888)}
+    .crop-preview-note{padding:10px 12px;border:1px solid var(--border);border-radius:9px;background:rgba(139,92,246,.07);font-size:.88rem}
+    @media(max-width:620px){.control-grid{grid-template-columns:1fr}.export-grid{grid-template-columns:1fr}.timeline-track{height:64px}.trim-handle{width:18px}}
+  </style>
+</head>
+<body>
+<header class="site-header">
+  <div class="container nav">
+    <a class="brand" href="index.html"><span class="brand-mark">P</span> PixelShift Studio</a>
+    <button class="menu-toggle" id="menuToggle" type="button" aria-label="Toggle navigation">☰</button>
+    <nav class="nav-links" id="navLinks">
+      <a href="index.html">Home</a><a href="tools.html">All tools</a>
+      <a href="studio.html">Image studio</a><a class="active" href="video.html">Video studio</a><a href="about.html">About</a>
+    </nav>
+    <div class="nav-actions"><button id="themeToggle" type="button">☾ Theme</button></div>
+  </div>
+</header>
+
+<main class="container">
+  <section class="page-top">
+    <span class="eyebrow">VIDEO WORKSPACE</span>
+    <h1>Video studio</h1>
+    <p>Trim with draggable handles, adjust orientation, capture frames and keep your editing settings.</p>
+  </section>
+
+  <div class="workspace">
+    <section class="workspace-main glass panel">
+      <div class="panel-head">
+        <div><h2>Video preview</h2><small>Formats supported by your browser</small></div>
+        <button id="changeVideo" type="button">Choose another</button>
+      </div>
+
+      <div class="drop-zone" id="videoDrop">
+        <input id="videoInput" type="file" accept="video/*" hidden>
+        <div class="drop-content" id="videoUpload">
+          <div class="upload-symbol">▶</div>
+          <h3>Drop a video here</h3>
+          <p class="muted">or choose a video from your device</p>
+          <button class="primary" id="chooseVideo" type="button">Choose video</button>
+        </div>
+        <div class="preview-content" id="videoPreviewWrap" hidden>
+          <div class="video-stage-preview" id="videoStage"><video id="videoPlayer" controls playsinline preload="metadata"></video><div class="crop-frame-overlay" id="cropFrameOverlay" aria-label="Draggable crop frame"><span class="crop-handle nw" data-crop-handle="nw"></span><span class="crop-handle n" data-crop-handle="n"></span><span class="crop-handle ne" data-crop-handle="ne"></span><span class="crop-handle e" data-crop-handle="e"></span><span class="crop-handle se" data-crop-handle="se"></span><span class="crop-handle s" data-crop-handle="s"></span><span class="crop-handle sw" data-crop-handle="sw"></span><span class="crop-handle w" data-crop-handle="w"></span></div></div>
+          <small class="file-name" id="videoCaption"></small>
+        </div>
+      </div>
+
+      <div class="setting-group" id="trim">
+        <h3>Trim timeline</h3>
+        <p class="muted">Drag either purple handle to set the cut. Drag the selected area to move the whole range.</p>
+        <div class="timeline-shell">
+          <div class="timeline-head"><strong>Selected section</strong><span id="selectedDuration">0.0 seconds</span></div>
+          <div class="timeline-times"><small id="timelineStartLabel">Start: 0:00.0</small><small id="timelineEndLabel">End: 0:00.0</small></div>
+          <div class="timeline-track" id="timelineTrack" role="group" aria-label="Draggable video trim timeline" tabindex="0">
+            <div class="timeline-dim" id="leftDim"></div>
+            <div class="timeline-dim" id="rightDim"></div>
+            <div class="timeline-selection" id="timelineSelection">
+              <div class="trim-handle left" id="startHandle" role="slider" tabindex="0" aria-label="Trim start">⋮</div>
+              <div class="trim-handle right" id="endHandle" role="slider" tabindex="0" aria-label="Trim end">⋮</div>
+            </div>
+            <div class="playhead" id="playhead"></div>
+          </div>
+          <div class="timeline-footer"><small id="timelineZero">0:00.0</small><small id="timelineDuration">0:00.0</small></div>
+        </div>
+        <div class="two-col" style="margin-top:12px">
+          <label>Start time (seconds)<input id="trimStart" type="number" min="0" step="0.1" value="0"></label>
+          <label>End time (seconds)<input id="trimEnd" type="number" min="0" step="0.1" value="0"></label>
+        </div>
+        <div class="toolbar">
+          <button id="setStart" type="button" disabled>Use current frame as start</button>
+          <button id="setEnd" type="button" disabled>Use current frame as end</button>
+          <button class="primary" id="playRange" type="button" disabled>Preview selected range</button>
+        </div>
+        <div class="status" id="trimStatus" aria-live="polite">Choose a video to begin.</div>
+        <p class="small-note">This selects and previews a range. Exporting a separate trimmed video needs a video encoder, which is not included in this browser-only version.</p>
+      </div>
+
+      <div class="setting-group" id="orientation">
+        <h3>Rotate and flip</h3>
+        <p class="muted">Correct sideways footage or mirror the preview. Frame capture uses the same orientation.</p>
+        <div class="button-row">
+          <button id="rotateLeft" type="button" disabled>↶ Rotate left</button>
+          <button id="rotateRight" type="button" disabled>↷ Rotate right</button>
+          <button id="flipHorizontal" type="button" disabled>⇋ Flip horizontal</button>
+          <button id="flipVertical" type="button" disabled>⇅ Flip vertical</button>
+        </div>
+        <div class="small-note" id="orientationStatus">Rotation: 0° · Horizontal flip: off · Vertical flip: off</div>
+      </div>
+
+      <div class="setting-group" id="videoCrop">
+        <h3>Crop video</h3>
+        <p class="muted">Drag the crop frame to reposition it. Drag any corner or edge handle to resize it, or use the presets and precise sliders below. The crop is applied to the exported video too.</p>
+        <div class="crop-controls">
+          <div class="button-row"><button id="toggleCropDrag" type="button" disabled>Enable drag-to-crop</button></div>
+          <div class="crop-presets" id="cropPresets" aria-label="Crop aspect ratio presets">
+            <button type="button" data-ratio="free" class="active">Freeform</button>
+            <button type="button" data-ratio="16:9">16:9</button>
+            <button type="button" data-ratio="9:16">9:16</button>
+            <button type="button" data-ratio="1:1">1:1 Square</button>
+            <button type="button" data-ratio="4:5">4:5 Portrait</button>
+            <button type="button" data-ratio="original">Original</button>
+          </div>
+          <div class="crop-slider"><label for="cropX">Horizontal position <input id="cropX" type="range" min="0" max="90" step="1" value="0"></label><output id="cropXValue">0%</output></div>
+          <div class="crop-slider"><label for="cropY">Vertical position <input id="cropY" type="range" min="0" max="90" step="1" value="0"></label><output id="cropYValue">0%</output></div>
+          <div class="crop-slider"><label for="cropW">Crop width <input id="cropW" type="range" min="10" max="100" step="1" value="100"></label><output id="cropWValue">100%</output></div>
+          <div class="crop-slider"><label for="cropH">Crop height <input id="cropH" type="range" min="10" max="100" step="1" value="100"></label><output id="cropHValue">100%</output></div>
+          <div class="button-row"><button id="resetCrop" type="button" disabled>Reset crop</button></div>
+          <div class="crop-preview-note" id="cropStatus" aria-live="polite">Full frame selected. Choose a crop preset or adjust the sliders.</div>
+        </div>
+      </div>
+
+      <div class="setting-group" id="playbackSettings">
+        <h3>Playback and sound</h3>
+        <div class="control-grid">
+          <label>Playback speed
+            <select id="playbackSpeed"><option value="0.25">0.25×</option><option value="0.5">0.5×</option><option value="0.75">0.75×</option><option value="1" selected>1× Normal</option><option value="1.25">1.25×</option><option value="1.5">1.5×</option><option value="2">2×</option></select>
+          </label>
+          <label>Volume <span id="volumeValue">100%</span><input id="volumeSlider" type="range" min="0" max="1" step="0.01" value="1"></label>
+        </div>
+        <div class="button-row" style="margin-top:10px"><button id="muteToggle" type="button" disabled>Mute audio</button><button id="captureCurrent" type="button" disabled>Capture current frame</button></div>
+      </div>
+
+      <div class="setting-group" id="thumbnail">
+        <h3>Frame capture</h3>
+        <p class="muted">Pause on a frame or enter a time, then save that frame as a PNG image.</p>
+        <div class="two-col">
+          <label>Frame time (seconds)<input id="frameTime" type="number" min="0" step="0.1" value="0"></label>
+          <div style="display:flex;align-items:end"><button id="seekFrame" type="button" style="width:100%" disabled>Go to frame time</button></div>
+        </div>
+        <div class="toolbar"><button class="primary" id="captureFrame" type="button" disabled>Capture PNG</button><button id="downloadThumb" type="button" disabled>Download PNG</button></div>
+        <div class="frame-preview" id="framePreview"><span class="muted">Captured frame appears here.</span></div>
+      </div>
+
+      <div class="setting-group" id="historyControls">
+        <h3>Edit history</h3>
+        <p class="muted">Undo or redo trim, crop, rotation, flip, speed, volume and mute changes.</p>
+        <div class="button-row"><button id="undoButton" type="button" disabled>↶ Undo</button><button id="redoButton" type="button" disabled>↷ Redo</button><button id="resetEdits" type="button" disabled>Reset edits</button></div>
+      </div>
+
+      <div class="setting-group" id="shortcuts">
+        <h3>Keyboard shortcuts</h3>
+        <div class="shortcut-list">
+          <span>Play / pause</span><kbd>Space</kbd>
+          <span>Back / forward 1 second</span><kbd>← / →</kbd>
+          <span>Back / forward 5 seconds</span><kbd>Shift + ← / →</kbd>
+          <span>Step one frame</span><kbd>, / .</kbd>
+          <span>Undo / redo</span><kbd>Ctrl + Z / Ctrl + Y</kbd>
+          <span>Capture current frame</span><kbd>C</kbd>
+        </div>
+        <p class="small-note">Shortcuts are paused while you type in an input, select or text field.</p>
+      </div>
+
+      <div class="setting-group" id="multiClipTools">
+        <h3>Multi-clip timeline</h3>
+        <p class="muted">Add clips, choose Preview / Edit beside any clip to load it into the main editor, then trim and crop it using the normal editing controls. Your edits are remembered for each clip. Combine creates the edited sequence and loads it into the main video preview. It does not download automatically. Review it, make any final edits, then use Export when you are ready.</p>
+        <label>Add video clips<input id="multiClipInput" type="file" accept="video/*" multiple></label>
+        <ol id="multiClipList" style="display:grid;gap:8px;padding-left:22px;margin:12px 0"></ol>
+        <div class="small-note">To crop a clip: select <b>Preview / Edit</b>, use the Crop controls above, and then select another clip. Your crop and trim settings are saved for that clip.</div>
+        <div class="button-row"><button id="clearClips" type="button" disabled>Clear clip list</button><button class="primary" id="combineClips" type="button" disabled>Combine clips</button></div>
+        <div class="small-note" id="multiClipStatus" aria-live="polite">No clips added yet. This sequence is separate from the single-video edit above.</div>
+      </div>
+
+      <div class="setting-group" id="textOverlayTools">
+        <h3>Text and watermark</h3>
+        <p class="muted">Add a title or watermark to the exported video. Leave the text empty to turn it off.</p>
+        <div class="control-grid">
+          <label>Overlay text<input id="overlayText" type="text" maxlength="120" placeholder="Your title or watermark"></label>
+          <label>Text position<select id="overlayPosition"><option value="bottom">Bottom</option><option value="top">Top</option><option value="center">Center</option></select></label>
+          <label>Text color<input id="overlayColor" type="color" value="#ffffff"></label>
+          <label>Text background<select id="overlayBackground"><option value="box">Dark background</option><option value="none">No background</option></select></label>
+          <label>Show from (seconds)<input id="overlayStart" type="number" min="0" step="0.1" value="0"></label>
+          <label>Show until (seconds)<input id="overlayEnd" type="number" min="0" step="0.1" value="10"></label>
+        </div>
+      </div>
+
+      <div class="setting-group" id="colorResizeTools">
+        <h3>Filters and resize</h3>
+        <div class="control-grid">
+          <label>Brightness <span id="brightnessValue">0</span><input id="brightnessSlider" type="range" min="-0.5" max="0.5" step="0.05" value="0"></label>
+          <label>Contrast <span id="contrastValue">1.0</span><input id="contrastSlider" type="range" min="0.5" max="2" step="0.1" value="1"></label>
+          <label>Saturation <span id="saturationValue">1.0</span><input id="saturationSlider" type="range" min="0" max="2" step="0.1" value="1"></label>
+          <label>Output size<select id="outputSize"><option value="original">Original size</option><option value="1080">1080p</option><option value="720">720p</option><option value="480">480p</option><option value="360">360p</option></select></label>
+          <label>Fade in (seconds)<input id="fadeIn" type="number" min="0" max="10" step="0.5" value="0"></label>
+          <label>Fade out (seconds)<input id="fadeOut" type="number" min="0" max="10" step="0.5" value="0"></label>
+        </div>
+        <div class="button-row" style="margin-top:10px"><button id="resetColor" type="button" disabled>Reset filters</button></div>
+      </div>
+
+      <div class="setting-group" id="musicTools">
+        <h3>Background music</h3>
+        <p class="muted">Mix an audio file into the export. Audio is processed locally in your browser.</p>
+        <label>Choose audio file<input id="musicInput" type="file" accept="audio/*"></label>
+        <div class="control-grid" style="margin-top:10px">
+          <label>Music volume <span id="musicVolumeValue">35%</span><input id="musicVolume" type="range" min="0" max="1" step="0.05" value="0.35"></label>
+          <label>Original video audio<select id="originalAudioMode"><option value="mix">Keep and mix original audio</option><option value="music-only">Music only</option><option value="original-only">Original audio only</option></select></label>
+        </div>
+        <div class="button-row" style="margin-top:10px"><button id="removeMusic" type="button" disabled>Remove background music</button></div>
+        <div class="small-note" id="musicStatus">No background music selected.</div>
+      </div>
+
+      <div class="setting-group" id="projectTools">
+        <h3>Save and reopen project</h3>
+        <p class="muted">Save your editing settings as a small JSON project file. Reopen it after selecting the same source video.</p>
+        <div class="button-row"><button id="saveProject" type="button" disabled>Save project JSON</button><button id="openProject" type="button">Open project JSON</button><input id="projectInput" type="file" accept="application/json,.json" hidden></div>
+        <div class="small-note" id="projectStatus" aria-live="polite">Project files save edit settings, not the video itself.</div>
+      </div>
+
+      <div class="setting-group" id="videoExport">
+        <h3>Export edited video</h3>
+        <p class="muted">Render the selected range with crop, orientation, speed, color adjustments, text overlays, resizing, and optional background music.</p>
+        <div class="export-grid">
+          <label>Output format
+            <select id="exportFormat"><option value="mp4">MP4 (H.264 + AAC)</option><option value="webm">WebM (VP9 + Opus)</option><option value="gif">Animated GIF</option><option value="mp3">MP3 audio only</option><option value="wav">WAV audio only</option></select>
+          </label>
+          <label>Video quality
+            <select id="exportQuality"><option value="high">High quality</option><option value="balanced" selected>Balanced</option><option value="small">Smaller file</option></select>
+          </label>
+        </div>
+        <div class="toolbar" style="margin-top:12px">
+          <button class="primary" id="exportVideo" type="button" disabled>Export edited video</button>
+          <button id="cancelExport" type="button" disabled>Cancel export</button>
+        </div>
+        <div class="export-progress" id="exportProgress" hidden><span id="exportProgressBar"></span></div>
+        <div class="export-status" id="exportStatus" aria-live="polite">Choose a video to enable exporting. First export downloads the browser-based processing engine.</div>
+        <p class="small-note">Exporting runs on your device and can use substantial memory and CPU. Keep this tab open until the download begins. Large videos may take several minutes.</p>
+      </div>
+
+      <div class="setting-group" id="advanced">
+        <h3>Advanced video tools</h3>
+        <div class="video-tools">
+          <div><h4>Convert, compress and create GIFs</h4><p class="muted">Choose MP4/WebM quality to control file size, or select GIF, MP3, or WAV in export settings.</p></div>
+          <div><h4>More editing controls</h4><p class="muted">Text overlays, color adjustments, output resizing, and background music are available above.</p></div>
+        </div>
+        <div class="note">Export creates a separate edited file. Your original video remains unchanged. Video processing depends on the codecs supported by the loaded engine.</div>
+      </div>
+    </section>
+
+    <aside class="glass panel" id="info">
+      <h2>Video information</h2><p class="muted">Details appear after a video is loaded.</p>
+      <div class="info-list" id="videoInfo"><p class="muted">No video loaded.</p></div>
+      <hr style="border:0;border-top:1px solid var(--border);margin:22px 0">
+      <h2>Quick controls</h2>
+      <div class="stack"><button id="playPause" type="button" disabled>Play / pause</button><button id="goBeginning" type="button" disabled>Go to beginning</button><button id="fullscreen" type="button" disabled>Fullscreen</button></div>
+      <div class="note" style="margin-top:18px">Your edit settings are saved in this browser for this video name and file size. The video itself is not uploaded.</div>
+    </aside>
+  </div>
+</main>
+
+<footer class="footer"><div class="container footer-inner"><span>© <span id="year"></span> PixelShift Studio</span><a href="tools.html">All tools</a></div></footer>
+
+<script>
+(() => {
+  "use strict";
+  const $ = id => document.getElementById(id);
+  const root = document.documentElement;
+  const savedTheme = localStorage.getItem("pixelshift-theme");
+  if (savedTheme === "dark" || savedTheme === "light") root.dataset.theme = savedTheme;
+  $("themeToggle").addEventListener("click", () => {
+    const next = root.dataset.theme === "dark" ? "light" : "dark";
+    root.dataset.theme = next;
+    localStorage.setItem("pixelshift-theme", next);
+  });
+  $("menuToggle").addEventListener("click", () => $("navLinks").classList.toggle("open"));
+  $("year").textContent = new Date().getFullYear();
+
+  const input = $("videoInput"), drop = $("videoDrop"), upload = $("videoUpload"), wrap = $("videoPreviewWrap"), video = $("videoPlayer");
+  const editControlIds = ["trimStart","trimEnd","playbackSpeed","volumeSlider"];
+  let videoURL = null, thumbnailURL = null, currentFile = null, rangeTimer = null, duration = 0, saveKey = "", isRestoring = false;
+  let state = { start:0, end:0, rotation:0, flipX:false, flipY:false, speed:1, volume:1, muted:false, cropX:0, cropY:0, cropW:100, cropH:100, cropRatio:"free", brightness:0, contrast:1, saturation:1, outputSize:"original", overlayText:"", overlayPosition:"bottom", overlayColor:"#ffffff", overlayBackground:"box", overlayStart:0, overlayEnd:10, musicVolume:0.35, originalAudioMode:"mix", fadeIn:0, fadeOut:0 };
+  let musicFile = null, musicURL = null;
+  const musicPreview = new Audio();
+  musicPreview.preload = "auto";
+  musicPreview.loop = true;
+  let undoStack = [], redoStack = [];
+
+  function syncPreviewAudio(shouldPlay = !video.paused) {
+    const mode = state.originalAudioMode || "mix";
+    video.muted = Boolean(state.muted || mode === "music-only");
+    musicPreview.volume = clamp(Number(state.musicVolume) || 0, 0, 1);
+    if (!musicFile || mode === "original-only" || mode === "original") {
+      musicPreview.pause();
+      return;
+    }
+    if (mode === "music-only" || mode === "mix") {
+      const offset = Math.max(0, video.currentTime - (Number(state.start) || 0));
+      if (Number.isFinite(musicPreview.duration) && musicPreview.duration > 0) {
+        const target = offset % musicPreview.duration;
+        if (Math.abs(musicPreview.currentTime - target) > 0.45) musicPreview.currentTime = target;
+      } else if (Math.abs(musicPreview.currentTime - offset) > 0.45) {
+        try { musicPreview.currentTime = offset; } catch (_) {}
+      }
+      if (shouldPlay && musicPreview.paused) musicPreview.play().catch(() => {
+        $("musicStatus").textContent = "Music is selected. Press Play on the video to start preview audio.";
+      });
+      else if (!shouldPlay) musicPreview.pause();
+    }
+  }
+  video.addEventListener("play", () => syncPreviewAudio(true));
+  video.addEventListener("pause", () => syncPreviewAudio(false));
+  video.addEventListener("seeking", () => syncPreviewAudio(!video.paused));
+  video.addEventListener("seeked", () => syncPreviewAudio(!video.paused));
+  const MAX_HISTORY = 100;
+
+  function formatBytes(bytes) {
+    if (bytes < 1024) return bytes + " B";
+    if (bytes < 1048576) return (bytes / 1024).toFixed(1) + " KB";
+    return (bytes / 1048576).toFixed(2) + " MB";
+  }
+  function formatTime(seconds) {
+    if (!Number.isFinite(seconds)) return "Unknown";
+    seconds = Math.max(0, seconds);
+    const minutes = Math.floor(seconds / 60), secs = Math.floor(seconds % 60), tenths = Math.floor((seconds % 1) * 10);
+    return `${minutes}:${String(secs).padStart(2,"0")}.${tenths}`;
+  }
+  function escapeHTML(value) {
+    return String(value).replace(/[&<>"']/g, char => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;", "'":"&#39;"})[char]);
+  }
+  function clamp(value,min,max) { return Math.min(max,Math.max(min,value)); }
+  function snapshot() { return JSON.parse(JSON.stringify(state)); }
+  function sameState(a,b) { return JSON.stringify(a) === JSON.stringify(b); }
+  function recordEdit() {
+    if (isRestoring) return;
+    const now = snapshot();
+    if (undoStack.length && sameState(undoStack[undoStack.length-1],now)) return;
+    undoStack.push(now);
+    if (undoStack.length > MAX_HISTORY) undoStack.shift();
+    redoStack = [];
+    updateHistoryButtons();
+    saveSettings();
+  }
+  function updateHistoryButtons() {
+    $("undoButton").disabled = undoStack.length <= 1;
+    $("redoButton").disabled = redoStack.length === 0;
+    $("resetEdits").disabled = !currentFile;
+  }
+  function saveSettings() {
+    if (!saveKey || !currentFile) return;
+    try { localStorage.setItem(saveKey, JSON.stringify({state, savedAt:Date.now()})); } catch (_) { /* Storage may be unavailable or full. */ }
+  }
+  function restoreSettings() {
+    if (!saveKey) return false;
+    try {
+      const saved = JSON.parse(localStorage.getItem(saveKey) || "null");
+      if (!saved || !saved.state) return false;
+      const s = saved.state;
+      state.start = clamp(Number(s.start)||0,0,duration);
+      state.end = clamp(Number(s.end)||duration,0,duration);
+      if (state.end <= state.start) { state.start = 0; state.end = duration; }
+      state.rotation = ((Number(s.rotation)||0)%360+360)%360;
+      state.flipX = Boolean(s.flipX); state.flipY = Boolean(s.flipY);
+      state.speed = [0.25,0.5,0.75,1,1.25,1.5,2].includes(Number(s.speed)) ? Number(s.speed) : 1;
+      state.volume = clamp(Number(s.volume ?? 1),0,1); state.muted = Boolean(s.muted);
+      state.cropW = clamp(Number(s.cropW ?? 100),10,100); state.cropH = clamp(Number(s.cropH ?? 100),10,100);
+      state.cropX = clamp(Number(s.cropX ?? 0),0,100-state.cropW); state.cropY = clamp(Number(s.cropY ?? 0),0,100-state.cropH);
+      state.cropRatio = ["free","16:9","9:16","1:1","4:5","original"].includes(s.cropRatio) ? s.cropRatio : "free";
+      state.brightness = clamp(Number(s.brightness)||0,-0.5,0.5); state.contrast=clamp(Number(s.contrast)||1,0.5,2); state.saturation=clamp(Number(s.saturation)||1,0,2);
+      state.outputSize=["original","1080","720","480","360"].includes(s.outputSize)?s.outputSize:"original";
+      state.overlayText=String(s.overlayText||"").slice(0,120); state.overlayPosition=["bottom","top","center"].includes(s.overlayPosition)?s.overlayPosition:"bottom"; state.overlayColor=/^#[0-9a-f]{6}$/i.test(s.overlayColor||"")?s.overlayColor:"#ffffff"; state.overlayBackground=s.overlayBackground==="none"?"none":"box";
+      state.overlayStart=clamp(Number(s.overlayStart)||0,0,duration); state.overlayEnd=clamp(Number(s.overlayEnd)||duration,0,duration);
+      state.musicVolume=clamp(Number(s.musicVolume??0.35),0,1); state.originalAudioMode=["mix","music-only","original-only"].includes(s.originalAudioMode)?s.originalAudioMode:"mix";
+      state.fadeIn=clamp(Number(s.fadeIn)||0,0,10); state.fadeOut=clamp(Number(s.fadeOut)||0,0,10);
+      return true;
+    } catch (_) { return false; }
+  }
+  function renderState() {
+    isRestoring = true;
+    $("trimStart").value = state.start.toFixed(1);
+    $("trimEnd").value = state.end.toFixed(1);
+    $("playbackSpeed").value = String(state.speed);
+    $("volumeSlider").value = String(state.volume);
+    $("volumeValue").textContent = Math.round(state.volume*100)+"%";
+    video.playbackRate = state.speed; video.volume = state.volume; syncPreviewAudio(!video.paused);
+    $("muteToggle").textContent = state.muted ? "Unmute audio" : "Mute audio";
+    video.style.transform = `rotate(${state.rotation}deg) scaleX(${state.flipX?-1:1}) scaleY(${state.flipY?-1:1})`;
+    video.style.filter = `brightness(${1+state.brightness}) contrast(${state.contrast}) saturate(${state.saturation})`;
+    updateCropOverlay();
+    $("orientationStatus").textContent = `Rotation: ${state.rotation}° · Horizontal flip: ${state.flipX?"on":"off"} · Vertical flip: ${state.flipY?"on":"off"}`;
+    renderCropControls();
+    $("brightnessSlider").value=state.brightness; $("brightnessValue").textContent=Number(state.brightness).toFixed(2);
+    $("contrastSlider").value=state.contrast; $("contrastValue").textContent=Number(state.contrast).toFixed(1);
+    $("saturationSlider").value=state.saturation; $("saturationValue").textContent=Number(state.saturation).toFixed(1);
+    $("outputSize").value=state.outputSize;
+    $("overlayText").value=state.overlayText; $("overlayPosition").value=state.overlayPosition; $("overlayColor").value=state.overlayColor; $("overlayBackground").value=state.overlayBackground;
+    $("overlayStart").value=state.overlayStart; $("overlayEnd").value=state.overlayEnd;
+    $("musicVolume").value=state.musicVolume; $("musicVolumeValue").textContent=Math.round(state.musicVolume*100)+"%"; $("originalAudioMode").value=state.originalAudioMode;
+    $("fadeIn").value=state.fadeIn; $("fadeOut").value=state.fadeOut;
+    $("resetColor").disabled=!currentFile || (state.brightness===0&&state.contrast===1&&state.saturation===1&&state.outputSize==="original");
+    updateTimeline();
+    isRestoring = false;
+  }
+  function updateCropOverlay() {
+    const frame = $("cropFrameOverlay");
+    if (!frame) return;
+    frame.style.left = state.cropX + "%";
+    frame.style.top = state.cropY + "%";
+    frame.style.width = state.cropW + "%";
+    frame.style.height = state.cropH + "%";
+  }
+  function renderCropControls() {
+    ["X","Y","W","H"].forEach(key => {
+      const value = state["crop"+key];
+      $("crop"+key).value = value;
+      $("crop"+key+"Value").textContent = value + "%";
+    });
+    $("cropX").max = Math.max(0,100-state.cropW);
+    $("cropY").max = Math.max(0,100-state.cropH);
+    $("cropXValue").textContent = state.cropX + "%";
+    $("cropYValue").textContent = state.cropY + "%";
+    $("cropWValue").textContent = state.cropW + "%";
+    $("cropHValue").textContent = state.cropH + "%";
+    document.querySelectorAll("#cropPresets [data-ratio]").forEach(button => button.classList.toggle("active",button.dataset.ratio===state.cropRatio));
+    $("resetCrop").disabled = !currentFile || (state.cropX===0 && state.cropY===0 && state.cropW===100 && state.cropH===100);
+    const changed = state.cropX!==0 || state.cropY!==0 || state.cropW!==100 || state.cropH!==100;
+    $("cropStatus").textContent = changed ? `Crop selected: ${state.cropW}% × ${state.cropH}% of the frame, positioned at ${state.cropX}% from left and ${state.cropY}% from top. Export will apply this crop.` : "Full frame selected. Choose a crop preset or adjust the sliders.";
+  }
+  function setCropValue(key,value,commit=true) {
+    const k = "crop"+key;
+    state[k] = Math.round(Number(value)||0);
+    if(key==="W") { state.cropW=clamp(state.cropW,10,100); state.cropX=clamp(state.cropX,0,100-state.cropW); }
+    if(key==="H") { state.cropH=clamp(state.cropH,10,100); state.cropY=clamp(state.cropY,0,100-state.cropH); }
+    if(key==="X") state.cropX=clamp(state.cropX,0,100-state.cropW);
+    if(key==="Y") state.cropY=clamp(state.cropY,0,100-state.cropH);
+    if(state.cropW===100 && state.cropH===100 && state.cropX===0 && state.cropY===0) state.cropRatio="free";
+    renderCropControls();
+    updateCropOverlay();
+    if(commit) recordEdit();
+  }
+  function applyCropPreset(ratio) {
+    if(!duration || !video.videoWidth || !video.videoHeight) return;
+    state.cropRatio=ratio;
+    if(ratio==="free" || ratio==="original") {
+      state.cropX=0; state.cropY=0; state.cropW=100; state.cropH=100;
+    } else {
+      const parts=ratio.split(":").map(Number), target=parts[0]/parts[1];
+      const rotated=state.rotation%180!==0;
+      const sourceW=rotated?video.videoHeight:video.videoWidth;
+      const sourceH=rotated?video.videoWidth:video.videoHeight;
+      const sourceRatio=sourceW/sourceH;
+      if(sourceRatio>target) { state.cropH=100; state.cropW=clamp(Math.round(target/sourceRatio*100),10,100); }
+      else { state.cropW=100; state.cropH=clamp(Math.round(sourceRatio/target*100),10,100); }
+      state.cropX=Math.round((100-state.cropW)/2); state.cropY=Math.round((100-state.cropH)/2);
+    }
+    renderCropControls();
+    updateCropOverlay();
+    recordEdit();
+  }
+  let cropDrag = null;
+  let cropAdjustMode = false;
+  const cropFrame = $("cropFrameOverlay");
+  const videoStage = $("videoStage");
+  $("toggleCropDrag").addEventListener("click", () => {
+    cropAdjustMode = !cropAdjustMode;
+    videoStage.classList.toggle("crop-adjust-active", cropAdjustMode);
+    $("toggleCropDrag").textContent = cropAdjustMode ? "Finish crop adjustment" : "Enable drag-to-crop";
+    $("cropStatus").textContent = cropAdjustMode ? "Drag inside the crop frame to move it, or drag a handle to resize. Finish crop adjustment to use the video controls." : "Crop adjustment finished. Your crop is saved and will be included in export.";
+  });
+  cropFrame.addEventListener("pointerdown", event => {
+    if (!cropAdjustMode || !currentFile || !video.videoWidth || !video.videoHeight) return;
+    event.preventDefault();
+    const handle = event.target.closest("[data-crop-handle]");
+    cropDrag = { kind: handle ? handle.dataset.cropHandle : "move", startX: event.clientX, startY: event.clientY, x: state.cropX, y: state.cropY, w: state.cropW, h: state.cropH, rect: $("videoStage").getBoundingClientRect() };
+    cropFrame.classList.add("dragging");
+    try { cropFrame.setPointerCapture(event.pointerId); } catch (_) {}
+  });
+  cropFrame.addEventListener("pointermove", event => {
+    if (!cropDrag) return;
+    event.preventDefault();
+    const dx = (event.clientX - cropDrag.startX) / Math.max(1, cropDrag.rect.width) * 100;
+    const dy = (event.clientY - cropDrag.startY) / Math.max(1, cropDrag.rect.height) * 100;
+    let {x,y,w,h} = cropDrag;
+    const kind = cropDrag.kind;
+    if (kind === "move") {
+      x = clamp(cropDrag.x + dx, 0, 100 - w);
+      y = clamp(cropDrag.y + dy, 0, 100 - h);
+    } else {
+      if (kind.includes("w")) { const right = cropDrag.x + cropDrag.w; x = clamp(cropDrag.x + dx, 0, right - 10); w = right - x; }
+      if (kind.includes("e")) w = clamp(cropDrag.w + dx, 10, 100 - cropDrag.x);
+      if (kind.includes("n")) { const bottom = cropDrag.y + cropDrag.h; y = clamp(cropDrag.y + dy, 0, bottom - 10); h = bottom - y; }
+      if (kind.includes("s")) h = clamp(cropDrag.h + dy, 10, 100 - cropDrag.y);
+      if (kind === "n") { const bottom = cropDrag.y + cropDrag.h; y = clamp(cropDrag.y + dy, 0, bottom - 10); h = bottom - y; }
+      if (kind === "s") h = clamp(cropDrag.h + dy, 10, 100 - cropDrag.y);
+      if (kind === "e") w = clamp(cropDrag.w + dx, 10, 100 - cropDrag.x);
+      if (kind === "w") { const right = cropDrag.x + cropDrag.w; x = clamp(cropDrag.x + dx, 0, right - 10); w = right - x; }
+    }
+    state.cropX = Math.round(x); state.cropY = Math.round(y); state.cropW = Math.round(w); state.cropH = Math.round(h); state.cropRatio = "free";
+    renderCropControls(); updateCropOverlay();
+  });
+  function finishCropDrag() { if (!cropDrag) return; cropDrag = null; cropFrame.classList.remove("dragging"); recordEdit(); }
+  cropFrame.addEventListener("pointerup", finishCropDrag);
+  cropFrame.addEventListener("pointercancel", finishCropDrag);
+  ["X","Y","W","H"].forEach(key => $("crop"+key).addEventListener("input",event=>setCropValue(key,event.target.value,false)));
+  ["cropX","cropY","cropW","cropH"].forEach(id => $(id).addEventListener("change",()=>recordEdit()));
+  $("cropPresets").addEventListener("click",event=>{const button=event.target.closest("[data-ratio]");if(button)applyCropPreset(button.dataset.ratio);});
+  $("resetCrop").addEventListener("click",()=>{state.cropX=0;state.cropY=0;state.cropW=100;state.cropH=100;state.cropRatio="free";renderCropControls();updateCropOverlay();recordEdit();});
+
+  function updateTimeline() {
+    if (!duration || !Number.isFinite(duration)) return;
+    const startPct = state.start/duration*100, endPct = state.end/duration*100;
+    $("timelineSelection").style.left = startPct+"%";
+    $("timelineSelection").style.width = Math.max(0,endPct-startPct)+"%";
+    $("leftDim").style.left = "0"; $("leftDim").style.width = startPct+"%";
+    $("rightDim").style.left = endPct+"%"; $("rightDim").style.width = (100-endPct)+"%";
+    $("playhead").style.left = clamp((video.currentTime||0)/duration*100,0,100)+"%";
+    $("timelineStartLabel").textContent = "Start: "+formatTime(state.start);
+    $("timelineEndLabel").textContent = "End: "+formatTime(state.end);
+    $("selectedDuration").textContent = Math.max(0,state.end-state.start).toFixed(1)+" seconds";
+    $("timelineZero").textContent = formatTime(0); $("timelineDuration").textContent = formatTime(duration);
+    $("startHandle").setAttribute("aria-valuenow",state.start.toFixed(1));
+    $("endHandle").setAttribute("aria-valuenow",state.end.toFixed(1));
+  }
+  function setRange(start,end,commit=true) {
+    const minGap = Math.min(0.1,duration || 0.1);
+    start = clamp(Number(start)||0,0,Math.max(0,duration-minGap));
+    end = clamp(Number(end)||0,Math.min(duration,start+minGap),duration);
+    if (end <= start) end = Math.min(duration,start+minGap);
+    state.start = start; state.end = end;
+    $("trimStart").value = start.toFixed(1); $("trimEnd").value = end.toFixed(1);
+    updateTimeline();
+    if (commit) recordEdit();
+  }
+  function setEnabled(enabled) {
+    ["playPause","goBeginning","fullscreen","captureFrame","captureCurrent","seekFrame","setStart","setEnd","playRange","rotateLeft","rotateRight","flipHorizontal","flipVertical","muteToggle","exportVideo"].forEach(id => { if ($(id)) $(id).disabled = !enabled; });
+    $("trimStart").disabled = !enabled; $("trimEnd").disabled = !enabled; $("frameTime").disabled = !enabled; $("playbackSpeed").disabled = !enabled; $("volumeSlider").disabled = !enabled;
+    ["cropX","cropY","cropW","cropH","toggleCropDrag","brightnessSlider","contrastSlider","saturationSlider","outputSize","resetColor","overlayText","overlayPosition","overlayColor","overlayBackground","overlayStart","overlayEnd","musicInput","musicVolume","originalAudioMode","fadeIn","fadeOut","saveProject"].forEach(id=>$(id).disabled=!enabled);
+    document.querySelectorAll("#cropPresets button").forEach(button=>button.disabled=!enabled);
+    $("resetCrop").disabled=!enabled;
+    $("timelineTrack").setAttribute("aria-disabled",String(!enabled));
+  }
+  function stopRangePreview() { if (rangeTimer) { clearInterval(rangeTimer); rangeTimer = null; } }
+  function loadVideo(file) {
+    if (!file) return;
+    if (!file.type.startsWith("video/")) { $("trimStatus").textContent = "Please choose a valid video file."; return; }
+    stopRangePreview();
+    if (videoURL) URL.revokeObjectURL(videoURL);
+    if (thumbnailURL) { URL.revokeObjectURL(thumbnailURL); thumbnailURL = null; }
+    videoURL = URL.createObjectURL(file); currentFile = file; video.src = videoURL; video.load();
+    saveKey = "pixelshift-video-edit:" + encodeURIComponent(file.name + "|" + file.size + "|" + file.lastModified);
+    upload.hidden = true; wrap.hidden = false; drop.classList.add("has-file");
+    $("videoCaption").textContent = `${file.name} · ${formatBytes(file.size)}`;
+    $("trimStatus").textContent = "Loading video metadata...";
+    $("framePreview").innerHTML = '<span class="muted">Captured frame appears here.</span>';
+    $("downloadThumb").disabled = true; setEnabled(false);
+    $("videoInfo").innerHTML = '<p class="muted">Loading video details...</p>';
+  }
+  $("chooseVideo").addEventListener("click", () => input.click());
+  $("changeVideo").addEventListener("click", () => input.click());
+  drop.addEventListener("click", event => { if (event.target === drop || event.target === upload) input.click(); });
+  input.addEventListener("change", () => { loadVideo(input.files[0]); input.value = ""; });
+  drop.addEventListener("dragover", event => { event.preventDefault(); drop.classList.add("dragging"); });
+  drop.addEventListener("dragleave", () => drop.classList.remove("dragging"));
+  drop.addEventListener("drop", event => { event.preventDefault(); drop.classList.remove("dragging"); loadVideo(event.dataTransfer.files[0]); });
+
+  video.addEventListener("loadedmetadata", () => {
+    duration = Number.isFinite(video.duration) ? video.duration : 0;
+    if (!duration) { $("trimStatus").textContent = "This video does not report a usable duration."; return; }
+    const restored = restoreSettings();
+    if (!restored) state = {start:0,end:duration,rotation:0,flipX:false,flipY:false,speed:1,volume:1,muted:false,cropX:0,cropY:0,cropW:100,cropH:100,cropRatio:"free",brightness:0,contrast:1,saturation:1,outputSize:"original",overlayText:"",overlayPosition:"bottom",overlayColor:"#ffffff",overlayBackground:"box",overlayStart:0,overlayEnd:duration,musicVolume:0.35,originalAudioMode:"mix",fadeIn:0,fadeOut:0};
+    else { state.end = Math.min(state.end,duration); if (state.end <= state.start) {state.start=0;state.end=duration;} }
+    undoStack = [snapshot()]; redoStack = []; renderState(); updateHistoryButtons(); setEnabled(true);
+    window.dispatchEvent(new CustomEvent("pixelshift-video-ready"));
+    $("frameTime").max = duration; $("frameTime").value = "0";
+    const details = [["File name",currentFile.name],["File type",currentFile.type||"Unknown"],["File size",formatBytes(currentFile.size)],["Duration",formatTime(duration)],["Dimensions",`${video.videoWidth} × ${video.videoHeight} px`],["Aspect ratio",video.videoHeight?(video.videoWidth/video.videoHeight).toFixed(3)+":1":"Unknown"]];
+    $("videoInfo").innerHTML = details.map(([label,value])=>`<div class="info-row"><span>${escapeHTML(label)}</span><span>${escapeHTML(value)}</span></div>`).join("");
+    $("trimStatus").textContent = restored ? "Video ready. Previous editing settings restored." : "Video ready. Drag the purple handles to trim.";
+  });
+  video.addEventListener("error", () => { $("trimStatus").textContent = "The browser could not decode this video. Try a browser-supported MP4 or WebM file."; });
+  video.addEventListener("timeupdate", () => {
+    updateTimeline();
+    if (rangeTimer && video.currentTime >= state.end) { stopRangePreview(); video.pause(); video.currentTime = state.end; }
+  });
+  video.addEventListener("play", () => { $("playPause").textContent = "Pause"; });
+  video.addEventListener("pause", () => { $("playPause").textContent = "Play"; });
+
+  $("playPause").addEventListener("click", () => { if (video.paused) video.play().catch(()=>{}); else video.pause(); });
+  $("goBeginning").addEventListener("click", () => { video.currentTime = 0; video.pause(); });
+  $("fullscreen").addEventListener("click", () => { const target = wrap; if (target.requestFullscreen) target.requestFullscreen(); });
+  $("setStart").addEventListener("click", () => { setRange(Math.min(video.currentTime,state.end-0.1),state.end); $("trimStatus").textContent = "Start point set to "+formatTime(state.start); });
+  $("setEnd").addEventListener("click", () => { setRange(state.start,Math.max(video.currentTime,state.start+0.1)); $("trimStatus").textContent = "End point set to "+formatTime(state.end); });
+  $("playRange").addEventListener("click", () => {
+    if (!(state.end > state.start) || state.end > duration) { $("trimStatus").textContent = "Choose a valid trim range."; return; }
+    stopRangePreview(); video.currentTime = state.start; const playPromise = video.play();
+    if (playPromise && playPromise.catch) playPromise.catch(()=>{});
+    rangeTimer = setInterval(() => { if (video.currentTime >= state.end) { stopRangePreview(); video.pause(); video.currentTime = state.end; } },50);
+    $("trimStatus").textContent = `Previewing ${formatTime(state.start)} to ${formatTime(state.end)}.`;
+  });
+  $("trimStart").addEventListener("change", () => { setRange(clamp(Number($("trimStart").value)||0,0,duration),state.end); });
+  $("trimEnd").addEventListener("change", () => { setRange(state.start,clamp(Number($("trimEnd").value)||duration,0,duration)); });
+
+  let drag = null;
+  function timelineTimeFromX(clientX) { const rect = $("timelineTrack").getBoundingClientRect(); return clamp((clientX-rect.left)/rect.width,0,1)*duration; }
+  function beginDrag(event,kind) { if (!duration) return; event.preventDefault(); event.stopPropagation(); drag={kind,startX:event.clientX,start:state.start,end:state.end}; if (event.currentTarget.setPointerCapture) { try {event.currentTarget.setPointerCapture(event.pointerId);} catch(_){} } }
+  $("startHandle").addEventListener("pointerdown",e=>beginDrag(e,"start"));
+  $("endHandle").addEventListener("pointerdown",e=>beginDrag(e,"end"));
+  $("timelineSelection").addEventListener("pointerdown",e=>{ if(e.target=== $("timelineSelection")) beginDrag(e,"move"); });
+  document.addEventListener("pointermove",event=>{
+    if(!drag||!duration)return;
+    const delta=(event.clientX-drag.startX)/$("timelineTrack").getBoundingClientRect().width*duration;
+    const gap=Math.min(.1,duration);
+    if(drag.kind==="start") { state.start=clamp(drag.start+delta,0,state.end-gap); }
+    else if(drag.kind==="end") { state.end=clamp(drag.end+delta,state.start+gap,duration); }
+    else { const length=drag.end-drag.start; const nextStart=clamp(drag.start+delta,0,duration-length); state.start=nextStart;state.end=nextStart+length; }
+    $("trimStart").value=state.start.toFixed(1);$("trimEnd").value=state.end.toFixed(1);updateTimeline();
+  });
+  document.addEventListener("pointerup",()=>{ if(drag){drag=null;recordEdit();} });
+  [ ["startHandle","start"],["endHandle","end"] ].forEach(([id,which])=>$(id).addEventListener("keydown",e=>{
+    if(!["ArrowLeft","ArrowRight"].includes(e.key))return;e.preventDefault();const step=e.shiftKey?0.1:1;
+    if(which==="start")setRange(state.start+(e.key==="ArrowRight"?step:-step),state.end);else setRange(state.start,state.end+(e.key==="ArrowRight"?step:-step));
+  }));
+  $("timelineTrack").addEventListener("keydown",e=>{if(e.target!==$("timelineTrack")||!duration)return;if(e.key==="ArrowLeft"||e.key==="ArrowRight"){e.preventDefault();video.currentTime=clamp(video.currentTime+(e.key==="ArrowRight"?1:-1),0,duration);}});
+
+  $("rotateLeft").addEventListener("click",()=>{state.rotation=(state.rotation+270)%360;renderState();recordEdit();});
+  $("rotateRight").addEventListener("click",()=>{state.rotation=(state.rotation+90)%360;renderState();recordEdit();});
+  $("flipHorizontal").addEventListener("click",()=>{state.flipX=!state.flipX;renderState();recordEdit();});
+  $("flipVertical").addEventListener("click",()=>{state.flipY=!state.flipY;renderState();recordEdit();});
+  function updateColorState(commit=false) {
+    state.brightness=Number($("brightnessSlider").value); state.contrast=Number($("contrastSlider").value); state.saturation=Number($("saturationSlider").value); state.outputSize=$("outputSize").value;
+    $("brightnessValue").textContent=state.brightness.toFixed(2); $("contrastValue").textContent=state.contrast.toFixed(1); $("saturationValue").textContent=state.saturation.toFixed(1);
+    const filter=`brightness(${1+state.brightness}) contrast(${state.contrast}) saturate(${state.saturation})`;
+    video.style.filter=filter; $("resetColor").disabled=state.brightness===0&&state.contrast===1&&state.saturation===1&&state.outputSize==="original";
+    saveSettings(); if(commit)recordEdit();
+  }
+  ["brightnessSlider","contrastSlider","saturationSlider"].forEach(id=>$(id).addEventListener("input",()=>updateColorState(false)));
+  ["brightnessSlider","contrastSlider","saturationSlider"].forEach(id=>$(id).addEventListener("change",()=>updateColorState(true)));
+  $("outputSize").addEventListener("change",()=>{state.outputSize=$("outputSize").value;recordEdit();});
+  $("resetColor").addEventListener("click",()=>{state.brightness=0;state.contrast=1;state.saturation=1;state.outputSize="original";renderState();recordEdit();});
+  ["overlayText","overlayPosition","overlayColor","overlayBackground","overlayStart","overlayEnd"].forEach(id=>$(id).addEventListener("change",()=>{
+    state.overlayText=$("overlayText").value.slice(0,120); state.overlayPosition=$("overlayPosition").value; state.overlayColor=$("overlayColor").value; state.overlayBackground=$("overlayBackground").value;
+    state.overlayStart=clamp(Number($("overlayStart").value)||0,0,duration); state.overlayEnd=clamp(Number($("overlayEnd").value)||duration,0,duration); recordEdit();
+  }));
+  $("musicInput").addEventListener("change",()=>{
+    const nextFile=$("musicInput").files[0]||null;
+    if(musicURL) URL.revokeObjectURL(musicURL);
+    musicFile=nextFile; musicURL=musicFile?URL.createObjectURL(musicFile):null;
+    musicPreview.pause(); musicPreview.removeAttribute("src");
+    if(musicURL){musicPreview.src=musicURL;musicPreview.load();}
+    $("removeMusic").disabled=!musicFile;
+    $("musicStatus").textContent=musicFile?`Selected: ${musicFile.name}. Press Play on the video to hear the music preview.`:"No background music selected.";
+    syncPreviewAudio(!video.paused);
+  });
+  $("musicVolume").addEventListener("input",()=>{state.musicVolume=Number($("musicVolume").value);$("musicVolumeValue").textContent=Math.round(state.musicVolume*100)+"%";musicPreview.volume=state.musicVolume;saveSettings();});
+  $("musicVolume").addEventListener("change",recordEdit);
+  $("originalAudioMode").addEventListener("change",()=>{state.originalAudioMode=$("originalAudioMode").value;syncPreviewAudio(!video.paused);recordEdit();});
+  ["fadeIn","fadeOut"].forEach(id=>$(id).addEventListener("change",()=>{state[id]=clamp(Number($(id).value)||0,0,10);$(id).value=state[id];recordEdit();}));
+  $("removeMusic").addEventListener("click",()=>{musicPreview.pause();musicPreview.removeAttribute("src");musicPreview.load();musicFile=null;if(musicURL)URL.revokeObjectURL(musicURL);musicURL=null;$("musicInput").value="";$("removeMusic").disabled=true;$("musicStatus").textContent="Background music removed.";syncPreviewAudio(!video.paused);});
+  $("saveProject").addEventListener("click",()=>{if(!currentFile)return;const data={app:"PixelShift Studio",type:"video-project",version:1,source:{name:currentFile.name,size:currentFile.size,lastModified:currentFile.lastModified},state};const blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download=(currentFile.name.replace(/\.[^.]+$/,"")||"video")+"-project.json";a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);$("projectStatus").textContent="Project settings saved. Keep the original video file too.";});
+  $("openProject").addEventListener("click",()=>$("projectInput").click());
+  $("projectInput").addEventListener("change",async()=>{const file=$("projectInput").files[0];if(!file)return;try{const project=JSON.parse(await file.text());if(project.type!=="video-project"||!project.state)throw new Error("This is not a PixelShift video project.");if(!currentFile){throw new Error("Choose the source video first, then open the project file.");}if(project.source?.name&&project.source.name!==currentFile.name)throw new Error("This project was saved for a different video file.");state={...state,...project.state};state.start=clamp(Number(state.start)||0,0,duration);state.end=clamp(Number(state.end)||duration,state.start+0.1,duration);renderState();recordEdit();$("projectStatus").textContent="Project settings restored.";}catch(error){$("projectStatus").textContent=error.message||"Could not open project.";}finally{$("projectInput").value="";}});
+
+  $("playbackSpeed").addEventListener("change",()=>{state.speed=Number($("playbackSpeed").value)||1;renderState();recordEdit();});
+  $("volumeSlider").addEventListener("input",()=>{state.volume=Number($("volumeSlider").value);video.volume=state.volume;$("volumeValue").textContent=Math.round(state.volume*100)+"%";saveSettings();});
+  $("volumeSlider").addEventListener("change",()=>recordEdit());
+  $("muteToggle").addEventListener("click",()=>{state.muted=!state.muted;renderState();recordEdit();});
+  $("seekFrame").addEventListener("click",()=>{if(!video.src)return;const time=clamp(Number($("frameTime").value)||0,0,duration);video.currentTime=time;video.pause();$("trimStatus").textContent="Moved to "+formatTime(time);});
+
+  function captureFrame() {
+    if(!video.videoWidth||!video.videoHeight){$("trimStatus").textContent="Wait for the video to load before capturing a frame.";return;}
+    const quarterTurn=state.rotation%180!==0;
+    const canvas=document.createElement("canvas");canvas.width=quarterTurn?video.videoHeight:video.videoWidth;canvas.height=quarterTurn?video.videoWidth:video.videoHeight;
+    const ctx=canvas.getContext("2d");ctx.translate(canvas.width/2,canvas.height/2);ctx.rotate(state.rotation*Math.PI/180);ctx.scale(state.flipX?-1:1,state.flipY?-1:1);ctx.drawImage(video,-video.videoWidth/2,-video.videoHeight/2);
+    canvas.toBlob(blob=>{
+      if(!blob){$("trimStatus").textContent="Could not capture this frame.";return;}
+      if(thumbnailURL)URL.revokeObjectURL(thumbnailURL);thumbnailURL=URL.createObjectURL(blob);
+      $("framePreview").innerHTML="";const image=document.createElement("img");image.src=thumbnailURL;image.alt="Captured video frame";$("framePreview").appendChild(image);
+      $("downloadThumb").disabled=false;$("trimStatus").textContent="PNG frame captured at "+formatTime(video.currentTime)+" with current rotation and flip applied.";
+    },"image/png");
+  }
+  $("captureFrame").addEventListener("click",captureFrame);$("captureCurrent").addEventListener("click",captureFrame);
+  $("downloadThumb").addEventListener("click",()=>{if(!thumbnailURL)return;const link=document.createElement("a");link.href=thumbnailURL;link.download=(currentFile.name.replace(/\.[^.]+$/," ").trim()||"video")+"-frame-"+Math.floor(video.currentTime*10)/10+"s.png";link.click();});
+
+  function applyHistory(target,other) {
+    if(target.length<=1)return;other.push(target.pop());state=JSON.parse(JSON.stringify(target[target.length-1]));renderState();saveSettings();updateHistoryButtons();
+  }
+  $("undoButton").addEventListener("click",()=>applyHistory(undoStack,redoStack));
+  $("redoButton").addEventListener("click",()=>{if(!redoStack.length)return;undoStack.push(snapshot());state=JSON.parse(JSON.stringify(redoStack.pop()));renderState();saveSettings();updateHistoryButtons();});
+  $("resetEdits").addEventListener("click",()=>{if(!currentFile)return;state={start:0,end:duration,rotation:0,flipX:false,flipY:false,speed:1,volume:1,muted:false,cropX:0,cropY:0,cropW:100,cropH:100,cropRatio:"free",brightness:0,contrast:1,saturation:1,outputSize:"original",overlayText:"",overlayPosition:"bottom",overlayColor:"#ffffff",overlayBackground:"box",overlayStart:0,overlayEnd:duration,musicVolume:0.35,originalAudioMode:"mix",fadeIn:0,fadeOut:0};undoStack.push(snapshot());redoStack=[];renderState();recordEdit();updateHistoryButtons();$("trimStatus").textContent="Editing settings reset.";});
+
+  document.addEventListener("keydown",event=>{
+    const tag=event.target.tagName;
+    if(["INPUT","TEXTAREA","SELECT"].includes(tag)||event.target.isContentEditable)return;
+    if((event.ctrlKey||event.metaKey)&&event.key.toLowerCase()==="z"){event.preventDefault();if(event.shiftKey){$("redoButton").click();}else $("undoButton").click();return;}
+    if((event.ctrlKey||event.metaKey)&&event.key.toLowerCase()==="y"){event.preventDefault();$("redoButton").click();return;}
+    if(event.code==="Space"){if(!currentFile)return;event.preventDefault();if(video.paused)video.play().catch(()=>{});else video.pause();return;}
+    if(event.key==="ArrowLeft"||event.key==="ArrowRight") {if(!currentFile)return;event.preventDefault();video.currentTime=clamp(video.currentTime+(event.key==="ArrowRight"?1:-1)*(event.shiftKey?5:1),0,duration);return;}
+    if((event.key===","||event.key===".")&&currentFile){event.preventDefault();video.pause();video.currentTime=clamp(video.currentTime+(event.key==="."?1:-1)/30,0,duration);return;}
+    if(event.key.toLowerCase()==="c"&&currentFile){event.preventDefault();captureFrame();}
+  });
+  window.pixelShiftVideoEditor = {
+    getFile: () => currentFile,
+    getState: () => ({...state}),
+    getDuration: () => duration,
+    getVideo: () => video,
+    getMusicFile: () => musicFile,
+    loadFile: (file) => loadVideo(file),
+    setState: (nextState) => { state = {...state, ...nextState}; state.start=clamp(Number(state.start)||0,0,duration); state.end=clamp(Number(state.end)||duration,state.start+0.1,duration); renderState(); saveSettings(); },
+    setStatus: (message) => { $("trimStatus").textContent = message; }
+  };
+  window.addEventListener("beforeunload",()=>{saveSettings();musicPreview.pause();if(musicURL)URL.revokeObjectURL(musicURL);});
+  setEnabled(false);
+})();
+</script>
+<script type="module">
+  const $ = id => document.getElementById(id);
+  const exportButton = $("exportVideo");
+  const cancelButton = $("cancelExport");
+  const status = $("exportStatus");
+  const progressWrap = $("exportProgress");
+  const progressBar = $("exportProgressBar");
+  let ffmpeg = null;
+  let ffmpegLoadPromise = null;
+  let exportCancelled = false;
+  let exporting = false;
+
+  function setExportStatus(message, kind = "info") {
+    status.textContent = message;
+    status.dataset.kind = kind;
+  }
+
+  function setProgress(value) {
+    progressWrap.hidden = false;
+    progressBar.style.width = `${Math.max(0, Math.min(100, value))}%`;
+  }
+
+  function setExporting(value) {
+    exporting = value;
+    const editor = window.pixelShiftVideoEditor;
+    exportButton.disabled = value || !editor?.getFile() || !(editor.getDuration() > 0);
+    cancelButton.disabled = !value;
+    $("exportFormat").disabled = value;
+    $("exportQuality").disabled = value;
+  }
+
+  async function loadEngine() {
+    if (ffmpeg) return ffmpeg;
+    if (ffmpegLoadPromise) return ffmpegLoadPromise;
+    ffmpegLoadPromise = (async () => {
+      setExportStatus("Step 1/3: Loading the FFmpeg library...");
+      const { FFmpeg } = await import("https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.10/dist/esm/index.js");
+      setExportStatus("Step 2/3: Downloading the video-processing core. The first load can take a while...");
+      // Use the ESM core directly. Blob-wrapping ffmpeg-core.js can make the
+      // module worker fail with "failed to import ffmpeg-core.js".
+      const baseURL = "https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.6/dist/esm";
+      // Keep the FFmpeg class worker on the same origin as this page.
+      // The worker.js file also imports const.js and errors.js from its folder,
+      // so those files must sit beside it in ./assets/ffmpeg/.
+      const classWorkerURL = new URL("./assets/ffmpeg/worker.js", window.location.href).href;
+      const instance = new FFmpeg();
+      instance.on("progress", ({ progress }) => {
+        if (exporting && Number.isFinite(progress)) setProgress(Math.round(progress * 100));
+      });
+      instance.on("log", ({ message }) => {
+        if (/error|failed|invalid data/i.test(message)) console.warn("FFmpeg:", message);
+      });
+      setExportStatus("Step 3/3: Starting the video-processing engine...");
+      await instance.load({
+        // Serve the worker from this project so its relative imports resolve.
+        classWorkerURL,
+        coreURL: `${baseURL}/ffmpeg-core.js`,
+        wasmURL: `${baseURL}/ffmpeg-core.wasm`
+      });
+      ffmpeg = instance;
+      setExportStatus("Video-processing engine is ready.", "success");
+      return instance;
+    })();
+    try { return await ffmpegLoadPromise; }
+    catch (error) { ffmpegLoadPromise = null; throw error; }
+  }
+
+  function atempoFilters(speed) {
+    const filters = [];
+    let value = speed;
+    while (value < 0.5) { filters.push("atempo=0.5"); value /= 0.5; }
+    while (value > 2) { filters.push("atempo=2"); value /= 2; }
+    filters.push(`atempo=${value}`);
+    return filters;
+  }
+
+  function buildVideoFilters(state) {
+    const filters = [];
+    const rotation = ((state.rotation % 360) + 360) % 360;
+    if (rotation === 90) filters.push("transpose=1");
+    else if (rotation === 180) filters.push("hflip", "vflip");
+    else if (rotation === 270) filters.push("transpose=2");
+    if (state.flipX) filters.push("hflip");
+    if (state.flipY) filters.push("vflip");
+    if (state.cropW < 100 || state.cropH < 100 || state.cropX > 0 || state.cropY > 0) {
+      const w = (state.cropW / 100).toFixed(4), h = (state.cropH / 100).toFixed(4);
+      const x = (state.cropX / 100).toFixed(4), y = (state.cropY / 100).toFixed(4);
+      filters.push(`crop=trunc(iw*${w}/2)*2:trunc(ih*${h}/2)*2:trunc(iw*${x}/2)*2:trunc(ih*${y}/2)*2`);
+    }
+    if (state.brightness !== 0 || state.contrast !== 1 || state.saturation !== 1) filters.push(`eq=brightness=${Number(state.brightness).toFixed(2)}:contrast=${Number(state.contrast).toFixed(2)}:saturation=${Number(state.saturation).toFixed(2)}`);
+    if (state.outputSize !== "original") filters.push(`scale=-2:${Number(state.outputSize)}`);
+    if (state.speed !== 1) filters.push(`setpts=PTS/${state.speed}`);
+    const clipDuration=Math.max(0.1,(Number(state.end)-Number(state.start))/Math.max(0.25,Number(state.speed)||1));
+    if(state.fadeIn>0)filters.push(`fade=t=in:st=0:d=${Math.min(state.fadeIn,clipDuration).toFixed(2)}`);
+    if(state.fadeOut>0){const fade=Math.min(state.fadeOut,clipDuration);filters.push(`fade=t=out:st=${Math.max(0,clipDuration-fade).toFixed(2)}:d=${fade.toFixed(2)}`);}
+    return filters;
+  }
+
+  async function makeTextOverlay(state, width, height) {
+    const canvas = document.createElement("canvas"); canvas.width = Math.max(2,width); canvas.height = Math.max(2,height);
+    const ctx = canvas.getContext("2d");
+    const text = String(state.overlayText || "").trim();
+    if (!text) return null;
+    const fontSize = Math.max(18,Math.round(canvas.width*0.045));
+    ctx.font = `bold ${fontSize}px Arial, sans-serif`; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    const maxTextWidth = canvas.width * 0.88;
+    let shown = text;
+    while (ctx.measureText(shown).width > maxTextWidth && shown.length > 4) shown = shown.slice(0,-2).trimEnd()+"…";
+    const x = canvas.width/2;
+    const y = state.overlayPosition === "top" ? fontSize*1.3 : state.overlayPosition === "center" ? canvas.height/2 : canvas.height-fontSize*1.5;
+    if (state.overlayBackground === "box") {
+      const padX=fontSize*0.45,padY=fontSize*0.28,w=ctx.measureText(shown).width+padX*2,h=fontSize+padY*2;
+      ctx.fillStyle="rgba(0,0,0,.58)"; ctx.fillRect(x-w/2,y-h/2,w,h);
+    }
+    ctx.fillStyle=state.overlayColor||"#ffffff"; ctx.shadowColor="rgba(0,0,0,.55)"; ctx.shadowBlur=3; ctx.fillText(shown,x,y,maxTextWidth);
+    return await new Promise(resolve=>canvas.toBlob(resolve,"image/png"));
+  }
+
+  function qualityArgs(format, quality) {
+    if (format === "mp4") {
+      const crf = quality === "high" ? "18" : quality === "small" ? "28" : "23";
+      return ["-c:v", "libx264", "-preset", "ultrafast", "-crf", crf, "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", quality === "high" ? "192k" : quality === "small" ? "96k" : "128k", "-movflags", "+faststart"];
+    }
+    const crf = quality === "high" ? "24" : quality === "small" ? "38" : "32";
+    return ["-c:v", "libvpx-vp9", "-deadline", "realtime", "-cpu-used", "6", "-crf", crf, "-b:v", "0", "-c:a", "libopus", "-b:a", quality === "high" ? "128k" : "96k"];
+  }
+
+  const clipInput = $("multiClipInput");
+  const clipList = $("multiClipList");
+  const clipStatus = $("multiClipStatus");
+  let queuedClips = [];
+  const clipEdits = new Map();
+  let activeClip = null;
+  function rememberActiveClip() {
+    const editor = window.pixelShiftVideoEditor;
+    if (activeClip && editor?.getFile() === activeClip && editor.getDuration() > 0) {
+      clipEdits.set(activeClip, editor.getState());
+    }
+  }
+  function renderClipQueue() {
+    clipList.innerHTML = "";
+    queuedClips.forEach((file,index)=>{
+      const li=document.createElement("li"); li.style.display="grid"; li.style.gridTemplateColumns="minmax(0,1fr) auto"; li.style.gap="8px"; li.style.alignItems="center"; li.style.padding="10px"; li.style.border="1px solid var(--border, #ddd)"; li.style.borderRadius="10px";
+      const info=document.createElement("div"); info.style.minWidth="0";
+      const name=document.createElement("strong"); name.textContent=`${index+1}. ${file.name}`; name.style.display="block"; name.style.overflowWrap="anywhere";
+      const meta=document.createElement("span"); meta.className="small-note"; meta.textContent=`${(file.size/1048576).toFixed(1)} MB${clipEdits.has(file)?" · edits saved":" · not edited yet"}`;
+      info.append(name,meta); li.appendChild(info);
+      const controls=document.createElement("div"); controls.style.display="flex"; controls.style.flexWrap="wrap"; controls.style.gap="5px";
+      const edit=document.createElement("button"); edit.type="button"; edit.textContent="Preview / Edit"; edit.addEventListener("click",()=>{
+        rememberActiveClip(); activeClip=file; window.pixelShiftVideoEditor.loadFile(file);
+        clipStatus.textContent=`Loading ${file.name} into the main preview. Use the normal trim and crop controls, then select Save clip edits when finished.`;
+        renderClipQueue();
+      }); controls.appendChild(edit);
+      [["↑",-1],["↓",1],["Remove",0]].forEach(([label,delta])=>{
+        const b=document.createElement("button");b.type="button";b.textContent=label;b.disabled=(delta===-1&&index===0)||(delta===1&&index===queuedClips.length-1);b.addEventListener("click",()=>{
+          rememberActiveClip(); if(delta===0){clipEdits.delete(file);queuedClips.splice(index,1);if(activeClip===file)activeClip=null;}else{const next=index+delta;[queuedClips[index],queuedClips[next]]=[queuedClips[next],queuedClips[index]];}renderClipQueue();
+        });controls.appendChild(b);
+      }); li.appendChild(controls); clipList.appendChild(li);
+    });
+    $("clearClips").disabled=!queuedClips.length; $("combineClips").disabled=queuedClips.length<2;
+    clipStatus.textContent=queuedClips.length?`${queuedClips.length} clips queued. Select Preview / Edit to preview and edit each clip before combining.`:"No clips added yet.";
+  }
+  clipInput.addEventListener("change",()=>{const files=Array.from(clipInput.files||[]).filter(file=>file.type.startsWith("video/"));queuedClips.push(...files);renderClipQueue();clipInput.value="";});
+  $("clearClips").addEventListener("click",()=>{rememberActiveClip();queuedClips=[];clipEdits.clear();activeClip=null;renderClipQueue();});
+  // Save per-clip changes whenever the user leaves the main editor after editing a queued clip.
+  const saveClipButton=document.createElement("button"); saveClipButton.type="button"; saveClipButton.textContent="Save clip edits"; saveClipButton.disabled=true; saveClipButton.style.marginTop="8px";
+  $("multiClipTools").appendChild(saveClipButton);
+  saveClipButton.addEventListener("click",()=>{rememberActiveClip();renderClipQueue();clipStatus.textContent=activeClip?`Saved trim, crop, rotation, colour and other settings for ${activeClip.name}.`:"Choose a clip with Preview / Edit first.";});
+  document.addEventListener("pixelshift-video-ready",()=>{
+    const editor=window.pixelShiftVideoEditor; const file=editor?.getFile();
+    saveClipButton.disabled=!(file && queuedClips.includes(file));
+    if(file && queuedClips.includes(file)){
+      activeClip=file;
+      const saved=clipEdits.get(file);
+      if(saved) editor.setState(saved);
+      clipStatus.textContent=`Editing ${file.name}. Make your trim/crop changes, then click Save clip edits before switching clips.`;
+    }
+  });
+  $("combineClips").addEventListener("click",async()=>{
+    if(queuedClips.length<2)return;
+    rememberActiveClip();
+    const format=$("exportFormat").value==="webm"?"webm":"mp4",quality=$("exportQuality").value;
+    const button=$("combineClips");button.disabled=true;clipStatus.textContent="Loading video engine...";
+    const tempNames=[]; let outputName="pixelshift_sequence_final."+format;
+    try{
+      const [{fetchFile}]=await Promise.all([import("https://cdn.jsdelivr.net/npm/@ffmpeg/util@0.12.1/dist/esm/index.js")]);const engine=await loadEngine();
+      for(let i=0;i<queuedClips.length;i++){
+        const file=queuedClips[i], edit=clipEdits.get(file)||{start:0,end:0,rotation:0,flipX:false,flipY:false,cropX:0,cropY:0,cropW:100,cropH:100,brightness:0,contrast:1,saturation:1,speed:1,volume:1,muted:false};
+        const inputName=`pixelshift_clip_input_${i}.bin`, output=`pixelshift_clip_ready_${i}.mp4`;tempNames.push(inputName,output);
+        clipStatus.textContent=`Preparing clip ${i+1} of ${queuedClips.length}: ${file.name}`;
+        await engine.writeFile(inputName,await fetchFile(file));
+        const filters=[];const rot=((Number(edit.rotation)||0)%360+360)%360;
+        if(rot===90)filters.push("transpose=1");else if(rot===180)filters.push("hflip","vflip");else if(rot===270)filters.push("transpose=2");
+        if(edit.flipX)filters.push("hflip");if(edit.flipY)filters.push("vflip");
+        if(edit.cropW<100||edit.cropH<100||edit.cropX>0||edit.cropY>0){const w=(edit.cropW/100).toFixed(4),h=(edit.cropH/100).toFixed(4),x=(edit.cropX/100).toFixed(4),y=(edit.cropY/100).toFixed(4);filters.push(`crop=trunc(iw*${w}/2)*2:trunc(ih*${h}/2)*2:trunc(iw*${x}/2)*2:trunc(ih*${y}/2)*2`);}
+        if(edit.brightness||edit.contrast!==1||edit.saturation!==1)filters.push(`eq=brightness=${Number(edit.brightness||0).toFixed(2)}:contrast=${Number(edit.contrast||1).toFixed(2)}:saturation=${Number(edit.saturation||1).toFixed(2)}`);
+        filters.push("scale=1280:720:force_original_aspect_ratio=decrease","pad=1280:720:(ow-iw)/2:(oh-ih)/2","setsar=1","format=yuv420p");
+        if(Number(edit.speed||1)!==1)filters.push(`setpts=PTS/${Number(edit.speed)}`);
+        const clipDuration=Number(edit.end)>Number(edit.start)?Number(edit.end)-Number(edit.start):undefined;
+        const args=["-ss",String(Math.max(0,Number(edit.start)||0))];if(clipDuration)args.push("-t",String(clipDuration));args.push("-i",inputName,"-vf",filters.join(","));
+        if(edit.muted||Number(edit.volume)===0)args.push("-an");else if(Number(edit.volume||1)!==1)args.push("-af",`volume=${Math.max(0,Math.min(1,Number(edit.volume)))}`);
+        args.push("-c:v","libx264","-preset","ultrafast","-crf",quality==="high"?"18":quality==="small"?"28":"23","-pix_fmt","yuv420p","-c:a","aac","-b:a","128k","-y",output);
+        await engine.exec(args);
+      }
+      const concatName="pixelshift_clips_normalized.txt";tempNames.push(concatName);
+      await engine.writeFile(concatName,new TextEncoder().encode(queuedClips.map((_,i)=>`file 'pixelshift_clip_ready_${i}.mp4'`).join("\n")));
+      clipStatus.textContent="Combining the edited clips into one video...";
+      await engine.exec(format==="mp4"?["-f","concat","-safe","0","-i",concatName,"-c","copy","-y",outputName]:["-f","concat","-safe","0","-i",concatName,...qualityArgs("webm",quality),"-y",outputName]);
+      const data=await engine.readFile(outputName);if(!data?.length)throw new Error("The combined file is empty.");
+      const blob=new Blob([data],{type:format==="mp4"?"video/mp4":"video/webm"});
+      const mergedFile=new File([blob],`pixelshift-combined.${format}`,{type:blob.type,lastModified:Date.now()});
+      // Load the combined result into the main preview. Do not download until the user chooses Export.
+      activeClip=null;window.pixelShiftVideoEditor.loadFile(mergedFile);
+      clipStatus.textContent="Combined video is ready in the main preview. Play it to review, make any final edits, then click Export when you are ready to save it.";
+    }catch(error){console.error(error);clipStatus.textContent="Could not combine the clips: "+(error?.message||error)+". Try shorter clips if your browser runs out of memory.";}
+    finally{if(ffmpeg){for(const name of [...tempNames,outputName]){try{await ffmpeg.deleteFile(name);}catch(_){}}}button.disabled=queuedClips.length<2;}
+  });
+  renderClipQueue();
+
+  async function exportEditedVideo() {
+    const editor = window.pixelShiftVideoEditor;
+    const file = editor?.getFile();
+    const state = editor?.getState();
+    const duration = editor?.getDuration();
+    if (!file || !state || !Number.isFinite(duration) || duration <= 0) {
+      setExportStatus("Choose a video and wait for its metadata before exporting.", "error");
+      return;
+    }
+    const start = Math.max(0, Math.min(duration, Number(state.start) || 0));
+    const end = Math.max(0, Math.min(duration, Number(state.end) || duration));
+    if (end <= start) {
+      setExportStatus("The trim range is invalid. Move the end handle after the start handle.", "error");
+      return;
+    }
+
+    const format = $("exportFormat").value;
+    const quality = $("exportQuality").value;
+    if (state.originalAudioMode === "music-only" && !editor.getMusicFile?.() && format !== "gif") {
+      setExportStatus("Choose a background music file or change Original video audio to another option.", "error"); return;
+    }
+    const inputExt = (file.name.match(/\.([a-z0-9]{1,8})$/i)?.[1] || "video").toLowerCase();
+    const inputName = `pixelshift_input.${inputExt}`;
+    const outputName = `pixelshift_edited.${format}`;
+    exportCancelled = false;
+    setExporting(true);
+    setProgress(0);
+    setExportStatus("Preparing your video for export...");
+    let inputWritten = false;
+
+    try {
+      const [{ fetchFile }] = await Promise.all([
+        import("https://cdn.jsdelivr.net/npm/@ffmpeg/util@0.12.1/dist/esm/index.js")
+      ]);
+      const engine = await loadEngine();
+      if (exportCancelled) throw new Error("Export cancelled.");
+      await engine.writeFile(inputName, await fetchFile(file));
+      inputWritten = true;
+      if (exportCancelled) throw new Error("Export cancelled.");
+
+      const videoFilters = buildVideoFilters(state);
+      const audioOnly = format === "mp3" || format === "wav";
+      const isGif = format === "gif";
+      const args = ["-ss", start.toFixed(3), "-t", (end - start).toFixed(3), "-i", inputName];
+      const music = editor.getMusicFile?.();
+      const useMusic = Boolean(music && state.originalAudioMode !== "original-only");
+      const overlayActive = Boolean(String(state.overlayText||"").trim()) && !audioOnly && !isGif;
+      const overlayName = "pixelshift_overlay.png", musicName = "pixelshift_music.audio";
+      let overlayWritten = false, musicWritten = false, musicInputIndex = -1;
+      const sourceVideo = editor.getVideo();
+      if (overlayActive) {
+        let ow=sourceVideo.videoWidth||1280, oh=sourceVideo.videoHeight||720;
+        if(state.rotation%180!==0)[ow,oh]=[oh,ow];
+        ow=Math.max(2,Math.round(ow*state.cropW/100)); oh=Math.max(2,Math.round(oh*state.cropH/100));
+        if(state.outputSize!=="original"){ow=Math.max(2,Math.round(ow*Number(state.outputSize)/oh));oh=Number(state.outputSize);}
+        const overlayBlob=await makeTextOverlay(state,ow,oh);
+        if(overlayBlob){await engine.writeFile(overlayName,await fetchFile(overlayBlob));overlayWritten=true;args.push("-loop","1","-i",overlayName);}
+      }
+      if(useMusic){await engine.writeFile(musicName,await fetchFile(music));musicWritten=true;musicInputIndex=overlayWritten?2:1;args.push("-stream_loop","-1","-i",musicName);}
+      const complex=[];
+      if(audioOnly){
+        if(useMusic && state.originalAudioMode==="music-only") args.push("-map",`${musicInputIndex}:a:0`);
+        else if(useMusic && state.originalAudioMode==="mix"){
+          complex.push(`[0:a]volume=${state.muted?0:state.volume}[orig]`,`[${musicInputIndex}:a]volume=${state.musicVolume}[mus]`,`[orig][mus]amix=inputs=2:duration=first:dropout_transition=2[aout]`);
+          args.push("-map","[aout]");
+        } else if(state.muted||state.volume===0) args.push("-an");
+        else {const af=[];if(state.speed!==1)af.push(...atempoFilters(state.speed));if(state.volume!==1)af.push(`volume=${state.volume}`);if(state.fadeIn>0)af.push(`afade=t=in:st=0:d=${state.fadeIn}`);if(state.fadeOut>0)af.push(`afade=t=out:st=${Math.max(0,(end-start)/Math.max(.25,state.speed)-state.fadeOut)}:d=${state.fadeOut}`);if(af.length)args.push("-af",af.join(","));args.push("-map","0:a:0");}
+        if(format==="mp3")args.push("-c:a","libmp3lame","-b:a",quality==="high"?"192k":"128k");else args.push("-c:a","pcm_s16le");
+      } else {
+        if(overlayWritten){complex.push(`[0:v]${videoFilters.length?videoFilters.join(","):"null"}[base]`,`[1:v]format=rgba[ov]`,`[base][ov]overlay=0:0:shortest=1:enable='between(t,${Math.max(0,Number(state.overlayStart)||0)},${Math.max(0,Number(state.overlayEnd)||end-start)})'[vout]`);args.push("-map","[vout]");}
+        else {if(videoFilters.length&&!isGif)args.push("-vf",videoFilters.join(","));args.push("-map","0:v:0");}
+        if(isGif){args.push("-vf",`${videoFilters.length?videoFilters.join(",")+",":""}fps=12,scale=480:-1:flags=lanczos`,`-an`,`-loop`,`0`);}
+        else if(useMusic&&state.originalAudioMode==="music-only")args.push("-map",`${musicInputIndex}:a:0`);
+        else if(useMusic&&state.originalAudioMode==="mix"){
+          complex.push(`[0:a]volume=${state.muted?0:state.volume}[orig]`,`[${musicInputIndex}:a]volume=${state.musicVolume}[mus]`,`[orig][mus]amix=inputs=2:duration=first:dropout_transition=2[aout]`);args.push("-map","[aout]");
+        } else if(state.muted||state.volume===0)args.push("-an");
+        else {const af=[];if(state.speed!==1)af.push(...atempoFilters(state.speed));if(state.volume!==1)af.push(`volume=${Math.max(0,Math.min(1,state.volume))}`);if(state.fadeIn>0)af.push(`afade=t=in:st=0:d=${state.fadeIn}`);if(state.fadeOut>0)af.push(`afade=t=out:st=${Math.max(0,(end-start)/Math.max(.25,state.speed)-state.fadeOut)}:d=${state.fadeOut}`);if(af.length)args.push("-af",af.join(","));args.push("-map","0:a?");}
+        if(!isGif)args.push(...qualityArgs(format,quality));
+      }
+      if(complex.length)args.push("-filter_complex",complex.join(";"));
+      args.push("-t",((end-start)/Math.max(0.25,Number(state.speed)||1)).toFixed(3),"-y",outputName);
+      setExportStatus(`Rendering ${format.toUpperCase()} ${format==="mp3"||format==="wav"?"audio":"file"}. Keep this tab open...`);
+      await engine.exec(args);
+      if (overlayWritten) { try { await engine.deleteFile(overlayName); } catch (_) {} }
+      if (musicWritten) { try { await engine.deleteFile(musicName); } catch (_) {} }
+      if (exportCancelled) throw new Error("Export cancelled.");
+      const output = await engine.readFile(outputName);
+      if (!output || !output.length) throw new Error("The encoder produced an empty file.");
+      const mime = format === "mp4" ? "video/mp4" : format === "webm" ? "video/webm" : format === "gif" ? "image/gif" : format === "mp3" ? "audio/mpeg" : "audio/wav";
+      const bytes = output instanceof Uint8Array ? output : new Uint8Array(output);
+      const blob = new Blob([bytes], { type: mime });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      const safeBase = file.name.replace(/\.[^.]+$/, "").replace(/[^a-z0-9_-]+/gi, "-") || "video";
+      link.download = `${safeBase}-edited.${format}`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
+      setProgress(100);
+      setExportStatus(`Export complete. Your ${format.toUpperCase()} download should begin shortly.`, "success");
+      try { await engine.deleteFile(outputName); } catch (_) {}
+    } catch (error) {
+      console.error(error);
+      const message = String(error?.message || error);
+      if (message.includes("cancelled")) setExportStatus("Export cancelled. Your original video is unchanged.");
+      else setExportStatus("Export failed: " + message + ". Try a shorter or smaller video, or another format. If the engine could not load, check your internet connection.", "error");
+    } finally {
+      if (inputWritten && ffmpeg) { try { await ffmpeg.deleteFile(inputName); } catch (_) {} try { await ffmpeg.deleteFile("pixelshift_overlay.png"); } catch (_) {} try { await ffmpeg.deleteFile("pixelshift_music.audio"); } catch (_) {} }
+      setExporting(false);
+    }
+  }
+
+  exportButton.addEventListener("click", exportEditedVideo);
+  cancelButton.addEventListener("click", () => {
+    if (!exporting) return;
+    exportCancelled = true;
+    setExportStatus("Cancellation requested. The current processing step may need to finish first...");
+  });
+  document.addEventListener("pixelshift-video-ready", () => {
+    const editor = window.pixelShiftVideoEditor;
+    exportButton.disabled = !editor?.getFile() || !(editor.getDuration() > 0) || exporting;
+    setExportStatus("Video ready. Choose MP4 or WebM, select quality, then click Export edited video.");
+  });
+  window.addEventListener("beforeunload", () => { if (ffmpeg) { try { ffmpeg.terminate(); } catch (_) {} } });
+</script>
+</body>
+</html>

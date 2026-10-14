@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f4f6fc">
+  <meta name="description" content="Explore image and video editing tools in PixelShift Studio. Crop, resize, convert, compress images, trim videos, and capture thumbnails.">
+  <title>All Tools | PixelShift Studio</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    :root {
+      --tools-bg: #f4f6fc;
+      --tools-surface: rgba(255,255,255,.76);
+      --tools-surface-strong: rgba(255,255,255,.94);
+      --tools-text: #191d2c;
+      --tools-muted: #687087;
+      --tools-border: rgba(108,124,165,.18);
+      --tools-blue: #4268f5;
+      --tools-blue-dark: #3152d9;
+      --tools-blue-soft: rgba(66,104,245,.10);
+      --tools-shadow: 0 18px 48px rgba(34,49,94,.075);
+      --tools-radius: 22px;
+    }
+    html[data-theme="dark"] {
+      --tools-bg: #151622;
+      --tools-surface: rgba(31,33,49,.76);
+      --tools-surface-strong: rgba(35,37,55,.96);
+      --tools-text: #f3f5ff;
+      --tools-muted: #a8aec5;
+      --tools-border: rgba(169,179,224,.15);
+      --tools-blue: #8ca1ff;
+      --tools-blue-dark: #b1bdff;
+      --tools-blue-soft: rgba(123,145,255,.13);
+      --tools-shadow: 0 18px 48px rgba(0,0,0,.22);
+    }
+    body {
+      color: var(--tools-text);
+      background:
+        radial-gradient(ellipse at 12% 5%, rgba(83,119,255,.11), transparent 33rem),
+        radial-gradient(ellipse at 92% 25%, rgba(116,88,255,.08), transparent 28rem),
+        var(--tools-bg);
+      min-height: 100vh;
+    }
+    .tools-main { padding-bottom: 64px; }
+    .tools-hero {
+      position: relative;
+      max-width: 850px;
+      margin: 0 auto;
+      padding: clamp(58px, 8vw, 92px) 18px 44px;
+      text-align: center;
+    }
+    .tools-eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
+      padding: 8px 12px;
+      border: 1px solid var(--tools-border);
+      border-radius: 999px;
+      background: var(--tools-surface);
+      color: var(--tools-blue);
+      font-size: .72rem;
+      font-weight: 800;
+      letter-spacing: .14em;
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+    }
+    .tools-eyebrow::before {
+      content: "";
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--tools-blue);
+      box-shadow: 0 0 0 4px var(--tools-blue-soft);
+    }
+    .tools-hero h1 {
+      margin: 22px 0 14px;
+      color: var(--tools-text);
+      font-size: clamp(2.55rem, 6vw, 4.4rem);
+      line-height: 1.04;
+      letter-spacing: -.065em;
+      font-weight: 800;
+    }
+    .tools-hero h1 span {
+      color: var(--tools-blue);
+      background: linear-gradient(110deg, #4775ff 8%, #7865f7 90%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .tools-hero > p {
+      max-width: 590px;
+      margin: 0 auto;
+      color: var(--tools-muted);
+      font-size: clamp(1rem, 2vw, 1.12rem);
+      line-height: 1.75;
+    }
+    .tool-search {
+      max-width: 620px;
+      margin: 30px auto 0;
+      text-align: left;
+    }
+    .tool-search label {
+      display: block;
+      margin: 0 0 9px 4px;
+      color: var(--tools-text);
+      font-size: .85rem;
+      font-weight: 700;
+    }
+    .search-input-wrap {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-height: 60px;
+      padding: 0 14px 0 18px;
+      border: 1px solid var(--tools-border);
+      border-radius: 17px;
+      background: var(--tools-surface-strong);
+      box-shadow: 0 12px 34px rgba(40,57,110,.07), inset 0 1px rgba(255,255,255,.4);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      transition: border-color .2s ease, box-shadow .2s ease, transform .2s ease;
+    }
+    .search-input-wrap:focus-within {
+      border-color: var(--tools-blue);
+      box-shadow: 0 0 0 4px var(--tools-blue-soft), var(--tools-shadow);
+    }
+    .search-input-wrap > svg { flex: 0 0 auto; color: var(--tools-muted); }
+    .search-input-wrap input {
+      flex: 1;
+      width: 100%;
+      min-width: 0;
+      border: 0;
+      outline: 0;
+      background: transparent;
+      color: var(--tools-text);
+      font: inherit;
+      font-size: .98rem;
+      box-shadow: none;
+    }
+    .search-input-wrap input::placeholder { color: var(--tools-muted); opacity: .82; }
+    .search-input-wrap button {
+      border: 0;
+      border-radius: 10px;
+      padding: 8px 10px;
+      color: var(--tools-blue);
+      background: var(--tools-blue-soft);
+      font: inherit;
+      font-size: .8rem;
+      font-weight: 750;
+      cursor: pointer;
+    }
+    .search-input-wrap button[hidden], .tool-card[hidden], .empty-state[hidden] { display: none !important; }
+    .tools-directory { padding-top: 24px; }
+    .tools-heading {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 18px;
+      margin-bottom: 22px;
+    }
+    .tools-heading h2 {
+      margin: 0;
+      color: var(--tools-text);
+      font-size: clamp(1.5rem, 3vw, 2rem);
+      line-height: 1.2;
+      letter-spacing: -.04em;
+    }
+    .tools-heading p { margin: 8px 0 0; color: var(--tools-muted); }
+    .tool-count {
+      flex: 0 0 auto;
+      padding: 8px 12px;
+      border: 1px solid var(--tools-border);
+      border-radius: 999px;
+      background: var(--tools-surface);
+      color: var(--tools-muted);
+      font-size: .83rem;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+    .tool-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 18px;
+    }
+    .tool-card {
+      position: relative;
+      display: flex;
+      min-width: 0;
+      min-height: 258px;
+      flex-direction: column;
+      align-items: flex-start;
+      padding: 24px;
+      overflow: hidden;
+      border: 1px solid var(--tools-border);
+      border-radius: var(--tools-radius);
+      background: var(--tools-surface);
+      color: var(--tools-text);
+      text-decoration: none;
+      box-shadow: 0 8px 28px rgba(36,51,99,.035);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      transition: transform .22s ease, border-color .22s ease, box-shadow .22s ease, background .22s ease;
+    }
+    .tool-card::after {
+      content: "";
+      position: absolute;
+      width: 145px;
+      height: 145px;
+      right: -82px;
+      top: -88px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, rgba(83,119,255,.18), rgba(137,104,255,.06));
+      pointer-events: none;
+      transition: transform .25s ease;
+    }
+    .tool-card:hover, .tool-card:focus-visible {
+      transform: translateY(-5px);
+      border-color: rgba(83,112,245,.45);
+      background: var(--tools-surface-strong);
+      box-shadow: var(--tools-shadow);
+      outline: none;
+    }
+    .tool-card:hover::after { transform: scale(1.22); }
+    .feature-icon {
+      display: grid;
+      width: 48px;
+      height: 48px;
+      place-items: center;
+      margin-bottom: 18px;
+      border: 1px solid rgba(85,115,245,.18);
+      border-radius: 15px;
+      background: linear-gradient(145deg, var(--tools-blue-soft), rgba(130,111,255,.09));
+      color: var(--tools-blue);
+    }
+    .feature-icon svg { width: 23px; height: 23px; }
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      margin-bottom: 8px;
+      color: var(--tools-blue);
+      font-size: .68rem;
+      font-weight: 850;
+      letter-spacing: .13em;
+    }
+    .tool-card h3 {
+      margin: 0;
+      color: var(--tools-text);
+      font-size: 1.12rem;
+      font-weight: 760;
+      letter-spacing: -.025em;
+    }
+    .tool-card p {
+      margin: 9px 0 20px;
+      color: var(--tools-muted);
+      font-size: .92rem;
+      line-height: 1.65;
+    }
+    .tool-card-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      margin-top: auto;
+      color: var(--tools-blue);
+      font-size: .88rem;
+      font-weight: 760;
+    }
+    .tool-card-link span { transition: transform .2s ease; }
+    .tool-card:hover .tool-card-link span { transform: translate(3px, -2px); }
+    .empty-state {
+      margin-top: 18px;
+      padding: 34px 22px;
+      text-align: center;
+      border: 1px solid var(--tools-border);
+      border-radius: var(--tools-radius);
+      background: var(--tools-surface);
+    }
+    .empty-state h3 { margin: 0 0 8px; color: var(--tools-text); }
+    .empty-state p { margin: 0 0 18px; color: var(--tools-muted); }
+    .empty-state .button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border: 0;
+      border-radius: 12px;
+      padding: 11px 17px;
+      background: var(--tools-blue);
+      color: #fff;
+      font: inherit;
+      font-weight: 750;
+      cursor: pointer;
+      box-shadow: 0 8px 20px rgba(66,104,245,.2);
+    }
+    .search-status {
+      min-height: 1.4em;
+      margin: 18px 2px 0;
+      color: var(--tools-muted);
+      font-size: .85rem;
+    }
+    .footer { border-top: 1px solid var(--tools-border); }
+    .footer-inner { color: var(--tools-muted); }
+    .footer a { color: var(--tools-blue); }
+    @media (max-width: 900px) {
+      .tool-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .tool-card { min-height: 250px; }
+    }
+    @media (max-width: 560px) {
+      .tools-hero { padding: 52px 8px 30px; }
+      .tools-hero h1 { font-size: clamp(2.45rem, 12vw, 3.35rem); }
+      .tools-hero > p { font-size: .98rem; }
+      .tool-search { margin-top: 25px; }
+      .search-input-wrap { min-height: 56px; padding-left: 13px; gap: 9px; }
+      .search-input-wrap input { font-size: .9rem; }
+      .tools-directory { padding-top: 20px; }
+      .tools-heading { align-items: flex-start; }
+      .tools-heading p { font-size: .9rem; }
+      .tool-grid { grid-template-columns: minmax(0, 1fr); gap: 13px; }
+      .tool-card { min-height: 0; padding: 20px; }
+      .feature-icon { width: 44px; height: 44px; margin-bottom: 15px; }
+      .tool-card p { margin-bottom: 16px; }
+      .tool-count { padding: 7px 9px; font-size: .76rem; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; }
+    }
+  </style>
+</head>
+<body>
+<header class="site-header">
+  <div class="container nav">
+    <a class="brand" href="index.html" aria-label="PixelShift Studio home">
+      <span class="brand-mark">P</span>
+      <span>PixelShift Studio</span>
+    </a>
+
+    <button class="menu-toggle" id="menuToggle" type="button" aria-label="Open navigation menu" aria-controls="navLinks" aria-expanded="false">
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+        <path d="M4 6h16M4 12h16M4 18h16"/>
+      </svg>
+    </button>
+
+    <nav class="nav-links" id="navLinks" aria-label="Main navigation">
+      <a href="index.html">Home</a>
+      <a class="active" href="tools.html" aria-current="page">All tools</a>
+      <a href="studio.html">Image studio</a>
+      <a href="video.html">Video studio</a>
+      <a href="about.html">About</a>
+    </nav>
+
+    <div class="nav-actions">
+      <button id="themeToggle" type="button" aria-label="Switch to dark theme">
+        <svg id="themeIcon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M20.9 13A9 9 0 0 1 11 3.1 9 9 0 1 0 20.9 13Z"/>
+        </svg>
+        <span id="themeLabel">Dark mode</span>
+      </button>
+    </div>
+  </div>
+</header>
+
+<main class="container tools-main">
+  <section class="tools-hero" aria-labelledby="pageTitle">
+    <span class="tools-eyebrow">TOOL DIRECTORY</span>
+    <h1 id="pageTitle">Pick your <span>tool.</span></h1>
+    <p>Everything you need to polish images and shape videos, gathered in one simple workspace.</p>
+
+    <div class="tool-search">
+      <label for="toolSearch">Search the toolkit</label>
+      <div class="search-input-wrap">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
+          <circle cx="11" cy="11" r="7"/><path d="m16 16 4 4"/>
+        </svg>
+        <input id="toolSearch" type="search" placeholder="Try crop, thumbnail or format" autocomplete="off" aria-describedby="searchStatus">
+        <button id="clearSearch" type="button" hidden aria-label="Clear search">Clear</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="tools-directory" aria-label="Available editing tools">
+    <div class="tools-heading">
+      <div>
+        <h2>Explore the toolkit</h2>
+        <p>Choose a tool to open its workspace.</p>
+      </div>
+      <span class="tool-count" id="toolCount">9 tools</span>
+    </div>
+
+    <div class="tool-grid" id="toolGrid">
+      <a class="tool-card" data-search="image convert png jpg jpeg webp format file type export" href="studio.html">
+        <div class="feature-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h13M16 3l4 4-4 4M17 17H4m4-4-4 4 4 4"/></svg></div>
+        <span class="tag">IMAGE</span><h3>Image converter</h3><p>Export images as PNG, JPEG or WebP.</p><span class="tool-card-link">Open tool <span aria-hidden="true">↗</span></span>
+      </a>
+
+      <a class="tool-card" data-search="image compress compression quality file size smaller reduce" href="studio.html#compression">
+        <div class="feature-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m8 3-5 5 5 5M3 8h9a5 5 0 0 1 5 5v1"/><path d="m16 21 5-5-5-5m5 5h-9a5 5 0 0 1-5-5v-1"/></svg></div>
+        <span class="tag">IMAGE</span><h3>Image compressor</h3><p>Adjust export quality to reduce file size.</p><span class="tool-card-link">Open tool <span aria-hidden="true">↗</span></span>
+      </a>
+
+      <a class="tool-card" data-search="image resize resizer width height dimensions scale pixels" href="studio.html#resize">
+        <div class="feature-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H3v5M16 3h5v5M3 16v5h5M21 16v5h-5"/><path d="M8 8 3 3M16 8l5-5M8 16l-5 5m13-5 5 5"/></svg></div>
+        <span class="tag">IMAGE</span><h3>Image resizer</h3><p>Set custom dimensions and preserve proportions.</p><span class="tool-card-link">Open tool <span aria-hidden="true">↗</span></span>
+      </a>
+
+      <a class="tool-card" data-search="image crop cropper cut trim drag selection framing" href="studio.html#crop">
+        <div class="feature-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3v12a3 3 0 0 0 3 3h12M3 6h12a3 3 0 0 1 3 3v12"/></svg></div>
+        <span class="tag">IMAGE</span><h3>Image cropper</h3><p>Move and resize the crop box directly on the image.</p><span class="tool-card-link">Open tool <span aria-hidden="true">↗</span></span>
+      </a>
+
+      <a class="tool-card" data-search="image adjustments rotate flip brightness contrast grayscale saturation colour color" href="studio.html#adjustments">
+        <div class="feature-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 0 0 18Z"/></svg></div>
+        <span class="tag">IMAGE</span><h3>Image adjustments</h3><p>Rotate, flip and adjust brightness, contrast and saturation.</p><span class="tool-card-link">Open tool <span aria-hidden="true">↗</span></span>
+      </a>
+
+      <a class="tool-card" data-search="video trim trimmer cut start end clip duration shorten" href="video.html#trim">
+        <div class="feature-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m10 9 5 3-5 3Z"/></svg></div>
+        <span class="tag">VIDEO</span><h3>Video trimmer</h3><p>Choose start and end points and preview your selection.</p><span class="tool-card-link">Open tool <span aria-hidden="true">↗</span></span>
+      </a>
+
+      <a class="tool-card" data-search="video thumbnail maker frame poster screenshot image png capture" href="video.html#thumbnail">
+        <div class="feature-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg></div>
+        <span class="tag">VIDEO</span><h3>Thumbnail maker</h3><p>Capture a video frame and save it as a PNG image.</p><span class="tool-card-link">Open tool <span aria-hidden="true">↗</span></span>
+      </a>
+
+      <a class="tool-card" data-search="video information metadata dimensions duration file type size properties" href="video.html#info">
+        <div class="feature-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v5m0-8h.01"/></svg></div>
+        <span class="tag">VIDEO</span><h3>Video information</h3><p>Inspect duration, dimensions, file type and file size.</p><span class="tool-card-link">Open tool <span aria-hidden="true">↗</span></span>
+      </a>
+
+      <a class="tool-card" data-search="video advanced compress convert mp4 webm gif audio extract crop resize ffmpeg export" href="video.html#advanced">
+        <div class="feature-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8v4l3 2"/><circle cx="12" cy="12" r="9"/><path d="M19 5 21 3M5 5 3 3"/></svg></div>
+        <span class="tag">VIDEO</span><h3>Advanced video tools</h3><p>Explore video exports and editing options that use the processing engine.</p><span class="tool-card-link">Explore tools <span aria-hidden="true">↗</span></span>
+      </a>
+    </div>
+
+    <div class="empty-state" id="emptyState" hidden>
+      <h3>No matching tools</h3><p>Try another keyword, such as “image”, “crop” or “video”.</p>
+      <button class="button primary" id="resetSearch" type="button">Show all tools</button>
+    </div>
+    <p class="search-status" id="searchStatus" aria-live="polite">Showing all 9 tools.</p>
+  </section>
+</main>
+
+<footer class="footer">
+  <div class="container footer-inner">
+    <span>© <span id="year"></span> PixelShift Studio</span>
+    <a href="about.html">About this project</a>
+  </div>
+</footer>
+
+<script>
+(() => {
+  "use strict";
+
+  const root = document.documentElement;
+  const themeToggle = document.getElementById("themeToggle");
+  const themeIcon = document.getElementById("themeIcon");
+  const themeLabel = document.getElementById("themeLabel");
+  const themeColor = document.querySelector('meta[name="theme-color"]');
+
+  function getSavedTheme() {
+    try {
+      const saved = localStorage.getItem("pixelshift-theme");
+      return saved === "dark" || saved === "light" ? saved : "light";
+    } catch {
+      return "light";
+    }
+  }
+
+  function applyTheme(theme) {
+    root.dataset.theme = theme;
+    const isDark = theme === "dark";
+    themeLabel.textContent = isDark ? "Light mode" : "Dark mode";
+    themeToggle.setAttribute("aria-label", isDark ? "Switch to light theme" : "Switch to dark theme");
+    themeIcon.innerHTML = isDark
+      ? '<circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42"/>'
+      : '<path d="M20.9 13A9 9 0 0 1 11 3.1 9 9 0 1 0 20.9 13Z"/>';
+    themeColor.setAttribute("content", isDark ? "#151622" : "#f4f6fc");
+    try { localStorage.setItem("pixelshift-theme", theme); } catch { /* Storage may be unavailable. */ }
+  }
+
+  applyTheme(getSavedTheme());
+  themeToggle.addEventListener("click", () => {
+    applyTheme(root.dataset.theme === "dark" ? "light" : "dark");
+  });
+
+  const menuToggle = document.getElementById("menuToggle");
+  const navLinks = document.getElementById("navLinks");
+  menuToggle.addEventListener("click", () => {
+    const isOpen = navLinks.classList.toggle("open");
+    menuToggle.setAttribute("aria-expanded", String(isOpen));
+    menuToggle.setAttribute("aria-label", isOpen ? "Close navigation menu" : "Open navigation menu");
+  });
+  navLinks.querySelectorAll("a").forEach(link => {
+    link.addEventListener("click", () => {
+      navLinks.classList.remove("open");
+      menuToggle.setAttribute("aria-expanded", "false");
+      menuToggle.setAttribute("aria-label", "Open navigation menu");
+    });
+  });
+
+  document.getElementById("year").textContent = new Date().getFullYear();
+
+  const search = document.getElementById("toolSearch");
+  const clearSearch = document.getElementById("clearSearch");
+  const cards = Array.from(document.querySelectorAll(".tool-card"));
+  const toolCount = document.getElementById("toolCount");
+  const status = document.getElementById("searchStatus");
+  const emptyState = document.getElementById("emptyState");
+  const resetSearch = document.getElementById("resetSearch");
+
+  function filterTools() {
+    const query = search.value.trim().toLowerCase();
+    let visibleCount = 0;
+    cards.forEach(card => {
+      const searchableText = (card.dataset.search || "") + " " + card.textContent;
+      const matches = searchableText.toLowerCase().includes(query);
+      card.hidden = !matches;
+      if (matches) visibleCount++;
+    });
+    toolCount.textContent = `${visibleCount} ${visibleCount === 1 ? "tool" : "tools"}`;
+    clearSearch.hidden = query.length === 0;
+    emptyState.hidden = visibleCount !== 0;
+    status.textContent = query
+      ? `${visibleCount} ${visibleCount === 1 ? "tool" : "tools"} found.`
+      : `Showing all ${cards.length} tools.`;
+  }
+
+  search.addEventListener("input", filterTools);
+  clearSearch.addEventListener("click", () => {
+    search.value = "";
+    filterTools();
+    search.focus();
+  });
+  resetSearch.addEventListener("click", () => {
+    search.value = "";
+    filterTools();
+    search.focus();
+  });
+  filterTools();
+})();
+</script>
+</body>
+</html>

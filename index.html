@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="PixelShift Studio is a simple image and video editing toolkit. Crop, resize, convert, adjust and preview media in your browser.">
+  <meta name="theme-color" content="#f3f6fc">
+  <title>PixelShift Studio | Simple Media Editing</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    /* Homepage styles. Shared navigation, buttons and theme variables come from style.css. */
+    .home-hero{position:relative;padding:clamp(54px,8vw,94px) 0 64px;overflow:hidden}
+    .home-hero:before,.home-hero:after{content:"";position:absolute;z-index:-1;pointer-events:none;border-radius:50%;filter:blur(3px)}
+    .home-hero:before{width:390px;height:390px;right:-110px;top:-120px;background:radial-gradient(circle,rgba(59,130,246,.17),transparent 70%)}
+    .home-hero:after{width:320px;height:320px;left:-140px;bottom:-150px;background:radial-gradient(circle,rgba(96,165,250,.13),transparent 70%)}
+    .home-hero-grid{display:grid;grid-template-columns:minmax(0,1.04fr) minmax(0,.96fr);gap:clamp(28px,5vw,62px);align-items:center}
+    .home-kicker{display:inline-flex;align-items:center;gap:9px;padding:8px 12px;border:1px solid var(--border,rgba(148,163,184,.3));border-radius:999px;background:var(--glass,rgba(255,255,255,.6));color:var(--muted,#64748b);font-size:.78rem;font-weight:750;letter-spacing:.07em;text-transform:uppercase;backdrop-filter:blur(12px)}
+    .home-kicker-dot{width:7px;height:7px;border-radius:50%;background:#3b82f6;box-shadow:0 0 0 4px rgba(59,130,246,.12)}
+    .home-hero h1{max-width:700px;margin:20px 0 18px;font-size:clamp(2.7rem,5.6vw,5rem);line-height:1.01;letter-spacing:-.065em}
+    .home-hero h1 span{color:var(--accent,#2563eb);background:linear-gradient(100deg,#2563eb,#60a5fa);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+    .home-hero-copy{max-width:580px;color:var(--muted,#64748b);font-size:clamp(1rem,1.5vw,1.1rem);line-height:1.85}
+    .home-actions{display:flex;flex-wrap:wrap;gap:12px;margin-top:28px}
+    .home-note{display:flex;align-items:center;gap:9px;margin-top:21px;color:var(--muted,#64748b);font-size:.86rem;line-height:1.6}
+    .home-note svg{width:17px;height:17px;flex:0 0 auto;color:var(--accent,#2563eb)}
+    .home-visual{position:relative;min-width:0;padding:clamp(15px,2.3vw,24px);border:1px solid var(--border,rgba(148,163,184,.3));border-radius:25px;background:var(--glass,rgba(255,255,255,.68));backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px);box-shadow:0 28px 80px rgba(15,23,42,.11),inset 0 1px rgba(255,255,255,.5)}
+    .visual-topbar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:2px 2px 17px;border-bottom:1px solid var(--border,rgba(148,163,184,.25))}
+    .window-dots{display:flex;gap:6px}.window-dots span{width:9px;height:9px;border-radius:50%;background:#cbd5e1}.window-dots span:first-child{background:#f87171}.window-dots span:nth-child(2){background:#fbbf24}.window-dots span:nth-child(3){background:#4ade80}
+    .visual-label{color:var(--muted,#64748b);font-size:.73rem;font-weight:750;letter-spacing:.08em}
+    .visual-status{display:inline-flex;align-items:center;gap:6px;padding:5px 8px;border:1px solid var(--border,rgba(148,163,184,.25));border-radius:8px;color:var(--muted,#64748b);font-size:.72rem}
+    .visual-status:before{content:"";width:6px;height:6px;border-radius:50%;background:#3b82f6}
+    .visual-canvas{position:relative;display:grid;place-items:center;min-height:clamp(220px,29vw,310px);margin-top:17px;border:1px solid var(--border,rgba(148,163,184,.18));border-radius:17px;overflow:hidden;background:radial-gradient(ellipse at 50% 110%,rgba(59,130,246,.15),transparent 60%),linear-gradient(135deg,rgba(148,163,184,.08),rgba(148,163,184,.02))}
+    .visual-photo{position:relative;width:min(73%,320px);aspect-ratio:4/3;overflow:hidden;border:1px solid rgba(255,255,255,.5);border-radius:13px;background:linear-gradient(145deg,#dbeafe 0%,#93c5fd 43%,#64748b 100%);box-shadow:0 18px 42px rgba(15,23,42,.2)}
+    .visual-sun{position:absolute;top:16%;right:18%;width:15%;aspect-ratio:1;border-radius:50%;background:#f8fafc;box-shadow:0 0 32px rgba(255,255,255,.4)}
+    .visual-hill{position:absolute;bottom:-31%;left:-9%;width:120%;height:78%;border-radius:50% 50% 0 0;transform:rotate(-12deg);background:linear-gradient(130deg,#64748b,#475569)}
+    .visual-hill.second{bottom:-43%;left:25%;transform:rotate(14deg);background:linear-gradient(130deg,#334155,#1e293b)}
+    .crop-outline{position:absolute;inset:13%;border:2px solid rgba(255,255,255,.96);box-shadow:0 0 0 999px rgba(15,23,42,.14);border-radius:3px}
+    .crop-outline:before,.crop-outline:after{content:"";position:absolute;pointer-events:none;background:rgba(255,255,255,.42)}
+    .crop-outline:before{left:33.333%;top:0;bottom:0;width:1px;box-shadow:calc(var(--crop-third,1px)) 0 transparent}
+    .crop-outline:after{top:33.333%;left:0;right:0;height:1px}
+    .crop-handle{position:absolute;width:9px;height:9px;background:#fff;border:1.5px solid #2563eb;border-radius:2px}
+    .crop-handle.tl{top:-5px;left:-5px}.crop-handle.tr{top:-5px;right:-5px}.crop-handle.bl{bottom:-5px;left:-5px}.crop-handle.br{bottom:-5px;right:-5px}
+    .visual-caption{position:absolute;right:14px;bottom:14px;display:flex;align-items:center;gap:8px;padding:10px 12px;border:1px solid var(--border,rgba(148,163,184,.3));border-radius:11px;background:var(--glass,rgba(255,255,255,.82));backdrop-filter:blur(14px);font-size:.78rem;font-weight:750;box-shadow:0 8px 24px rgba(15,23,42,.08)}
+    .visual-caption svg{width:16px;height:16px;color:var(--accent,#2563eb)}
+    .visual-controls{display:grid;grid-template-columns:1fr auto;align-items:center;gap:14px;margin-top:15px}
+    .visual-control-lines{display:grid;gap:7px}.visual-control-line{height:6px;border-radius:999px;background:var(--border,rgba(148,163,184,.2));overflow:hidden}.visual-control-line span{display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,#2563eb,#60a5fa)}
+    .visual-export{display:flex;align-items:center;gap:7px;padding:9px 11px;border:1px solid rgba(37,99,235,.2);border-radius:10px;background:rgba(37,99,235,.08);color:var(--accent,#2563eb);font-size:.76rem;font-weight:750}
+    .visual-export svg{width:16px;height:16px}
+    .home-section{padding:clamp(34px,5vw,54px) 0}
+    .home-section-heading{display:flex;justify-content:space-between;align-items:end;gap:20px;margin-bottom:23px}
+    .home-section-heading h2{margin:0 0 8px;font-size:clamp(1.55rem,3vw,2.15rem);letter-spacing:-.045em}
+    .home-section-heading p{margin:0;color:var(--muted,#64748b);line-height:1.7}
+    .home-tool-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:17px}
+    .home-tool-card{position:relative;display:flex;flex-direction:column;align-items:flex-start;min-width:0;padding:24px;border:1px solid var(--border,rgba(148,163,184,.28));border-radius:19px;background:var(--glass,rgba(255,255,255,.65));backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);color:inherit;text-decoration:none;box-shadow:0 8px 28px rgba(15,23,42,.035);transition:transform .2s ease,border-color .2s ease,box-shadow .2s ease}
+    .home-tool-card:hover{transform:translateY(-4px);border-color:rgba(59,130,246,.65);box-shadow:0 18px 40px rgba(37,99,235,.1)}
+    .home-tool-card:focus-visible{outline:3px solid rgba(59,130,246,.45);outline-offset:3px}
+    .home-tool-icon{display:grid;place-items:center;width:48px;height:48px;margin-bottom:19px;border:1px solid rgba(59,130,246,.13);border-radius:14px;color:var(--accent,#2563eb);background:linear-gradient(145deg,rgba(59,130,246,.13),rgba(96,165,250,.06))}
+    .home-tool-icon svg{width:23px;height:23px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+    .home-tool-card h3{margin:0 0 9px;font-size:1.08rem;letter-spacing:-.015em}
+    .home-tool-card p{margin:0;color:var(--muted,#64748b);line-height:1.72;font-size:.93rem}
+    .home-tool-link{display:inline-flex;align-items:center;gap:7px;margin-top:19px;color:var(--accent,#2563eb);font-size:.9rem;font-weight:750}
+    .home-tool-link span{transition:transform .2s ease}.home-tool-card:hover .home-tool-link span{transform:translateX(3px)}
+    .home-benefits{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:23px;padding:clamp(22px,3vw,32px);border:1px solid var(--border,rgba(148,163,184,.28));border-radius:21px;background:var(--glass,rgba(255,255,255,.65));backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px)}
+    .home-benefit{min-width:0}.home-benefit-icon{display:grid;place-items:center;width:38px;height:38px;margin-bottom:13px;border-radius:12px;color:var(--accent,#2563eb);background:rgba(59,130,246,.09)}
+    .home-benefit-icon svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+    .home-benefit h3{margin:0 0 8px;font-size:1rem}.home-benefit p{margin:0;color:var(--muted,#64748b);line-height:1.7;font-size:.92rem}
+    .home-cta{position:relative;display:flex;justify-content:space-between;align-items:center;gap:25px;padding:clamp(24px,4vw,36px);border:1px solid rgba(59,130,246,.22);border-radius:22px;background:linear-gradient(115deg,rgba(59,130,246,.10),rgba(96,165,250,.045) 55%,var(--glass,rgba(255,255,255,.6)));backdrop-filter:blur(16px);overflow:hidden}
+    .home-cta h2{margin:0 0 8px;letter-spacing:-.035em}.home-cta p{margin:0;color:var(--muted,#64748b);line-height:1.7}
+    .home-cta-actions{display:flex;gap:10px;flex-wrap:wrap;flex-shrink:0}
+    .home-footer-note{display:flex;align-items:center;gap:8px;color:var(--muted,#64748b);font-size:.8rem}
+    .home-footer-note svg{width:15px;height:15px;color:var(--accent,#2563eb)}
+    @media(max-width:900px){.home-hero-grid{grid-template-columns:minmax(0,1fr);gap:36px}.home-hero-copy{max-width:680px}.home-visual{width:100%;max-width:650px;margin:0 auto}.visual-canvas{min-height:290px}.home-tool-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+    @media(max-width:620px){.home-hero{padding:45px 0 34px}.home-hero h1{font-size:clamp(2.65rem,12vw,3.7rem)}.home-actions{flex-direction:column}.home-actions .button{width:100%;justify-content:center;text-align:center}.home-visual{padding:14px;border-radius:19px}.visual-canvas{min-height:225px}.visual-photo{width:75%}.visual-caption{right:9px;bottom:9px;padding:8px 10px}.visual-controls{grid-template-columns:1fr}.visual-export{justify-content:center}.home-tool-grid,.home-benefits{grid-template-columns:minmax(0,1fr)}.home-section-heading{align-items:flex-start;flex-direction:column}.home-section-heading>.button{width:100%;justify-content:center}.home-benefits{gap:24px}.home-cta{align-items:stretch;flex-direction:column}.home-cta-actions{flex-direction:column}.home-cta-actions .button{width:100%;justify-content:center;text-align:center}}
+    @media(prefers-reduced-motion:reduce){.home-tool-card,.home-tool-link span{transition:none}.home-tool-card:hover{transform:none}}
+  </style>
+</head>
+<body>
+<header class="site-header">
+  <div class="container nav">
+    <a class="brand" href="index.html" aria-label="PixelShift Studio home"><span class="brand-mark">P</span><span>PixelShift Studio</span></a>
+    <button class="menu-toggle" id="menuToggle" type="button" aria-label="Open navigation menu" aria-controls="navLinks" aria-expanded="false">☰</button>
+    <nav class="nav-links" id="navLinks" aria-label="Main navigation">
+      <a class="active" href="index.html" aria-current="page">Home</a>
+      <a href="tools.html">All tools</a>
+      <a href="studio.html">Image studio</a>
+      <a href="video.html">Video studio</a>
+      <a href="about.html">About</a>
+    </nav>
+    <div class="nav-actions"><button id="themeToggle" type="button" aria-label="Switch colour theme"><span id="themeIcon" aria-hidden="true">☾</span><span id="themeLabel">Dark mode</span></button></div>
+  </div>
+</header>
+
+<main>
+  <section class="home-hero">
+    <div class="container home-hero-grid">
+      <div class="home-hero-content">
+        <span class="home-kicker"><span class="home-kicker-dot" aria-hidden="true"></span> A practical creative toolbox</span>
+        <h1>Your media.<br><span>Your vision.</span></h1>
+        <p class="home-hero-copy">Edit images and videos in one clean workspace. Crop with direct controls, fine-tune your media, and export the result with tools designed to stay out of your way.</p>
+        <div class="home-actions"><a class="button primary" href="tools.html">Explore all tools <span aria-hidden="true">↗</span></a><a class="button" href="video.html">Open video studio <span aria-hidden="true">→</span></a></div>
+        <p class="home-note"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22s8-4 8-11V5l-8-3-8 3v6c0 7 8 11 8 11Z" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="m9 12 2 2 4-4" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>No account needed. Supported files are processed in your browser on your device.</p>
+      </div>
+
+      <div class="home-visual" role="img" aria-label="Illustration of a photo inside an adjustable crop frame">
+        <div class="visual-topbar"><div class="window-dots" aria-hidden="true"><span></span><span></span><span></span></div><span class="visual-label">PIXELSHIFT WORKSPACE</span><span class="visual-status">Ready to edit</span></div>
+        <div class="visual-canvas"><div class="visual-photo" aria-hidden="true"><div class="visual-sun"></div><div class="visual-hill"></div><div class="visual-hill second"></div><div class="crop-outline"><span class="crop-handle tl"></span><span class="crop-handle tr"></span><span class="crop-handle bl"></span><span class="crop-handle br"></span></div></div><div class="visual-caption"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8V4h4M16 4h4v4M20 16v4h-4M8 20H4v-4M8 8h8v8H8z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>Drag. Adjust. Export.</div></div>
+        <div class="visual-controls"><div class="visual-control-lines" aria-hidden="true"><div class="visual-control-line"><span style="width:72%"></span></div><div class="visual-control-line"><span style="width:46%"></span></div></div><div class="visual-export"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m-5-5 5 5 5-5M5 17v4h14v-4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg> Export ready</div></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="home-section" aria-labelledby="workspaceHeading">
+    <div class="container">
+      <div class="home-section-heading"><div><h2 id="workspaceHeading">What would you like to edit?</h2><p>Choose a workspace and get straight to the tools you need.</p></div><a class="button" href="tools.html">View all tools <span aria-hidden="true">→</span></a></div>
+      <div class="home-tool-grid">
+        <a class="home-tool-card" href="studio.html"><div class="home-tool-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><path d="m21 15-5-5L5 21"></path></svg></div><h3>Image studio</h3><p>Crop with a draggable frame, resize, rotate, flip, adjust colours and export your image.</p><span class="home-tool-link">Edit an image <span aria-hidden="true">→</span></span></a>
+        <a class="home-tool-card" href="video.html"><div class="home-tool-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="3"></rect><path d="m10 9 5 3-5 3z"></path></svg></div><h3>Video studio</h3><p>Trim clips, crop your frame, adjust visuals and audio, add titles, and export your edits.</p><span class="home-tool-link">Edit a video <span aria-hidden="true">→</span></span></a>
+        <a class="home-tool-card" href="tools.html"><div class="home-tool-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3v18M3 12h18"></path><path d="m5 5 14 14M19 5 5 19"></path></svg></div><h3>Quick tools</h3><p>Find conversion, compression, image information and other handy media utilities.</p><span class="home-tool-link">Find a tool <span aria-hidden="true">→</span></span></a>
+      </div>
+    </div>
+  </section>
+
+  <section class="home-section" aria-labelledby="benefitsHeading">
+    <div class="container"><div class="home-section-heading"><div><h2 id="benefitsHeading">A smoother way to edit</h2><p>Useful controls, clear feedback, and fewer steps between idea and export.</p></div></div>
+      <div class="home-benefits">
+        <div class="home-benefit"><div class="home-benefit-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 8V4h4M16 4h4v4M20 16v4h-4M8 20H4v-4M8 8h8v8H8z"></path></svg></div><h3>Direct control</h3><p>Where supported, drag handles on the preview instead of relying on numbers alone.</p></div>
+        <div class="home-benefit"><div class="home-benefit-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3v18M3 12h18"></path><circle cx="12" cy="12" r="8"></circle></svg></div><h3>Live feedback</h3><p>See image adjustments as you make them, with controls to reset or refine your edits.</p></div>
+        <div class="home-benefit"><div class="home-benefit-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3v12m-5-5 5 5 5-5M5 17v4h14v-4"></path></svg></div><h3>Clear exports</h3><p>Choose supported output formats and download your results without unnecessary steps.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="home-section"><div class="container"><div class="home-cta"><div><h2>Ready to make something better?</h2><p>Start with a file from your device and make the edits you need.</p><div class="home-footer-note" style="margin-top:14px"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22s8-4 8-11V5l-8-3-8 3v6c0 7 8 11 8 11Z" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="m9 12 2 2 4-4" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>Your original files stay on your device unless a tool explicitly says otherwise.</div></div><div class="home-cta-actions"><a class="button primary" href="studio.html">Start with images <span aria-hidden="true">↗</span></a><a class="button" href="video.html">Start with video <span aria-hidden="true">↗</span></a></div></div></div></section>
+</main>
+
+<footer class="footer"><div class="container footer-inner"><span>© <span id="year"></span> PixelShift Studio</span><span>Simple tools. Your creative control.</span></div></footer>
+
+<script>
+(() => {
+  "use strict";
+  const root = document.documentElement;
+  const themeButton = document.getElementById("themeToggle");
+  const themeIcon = document.getElementById("themeIcon");
+  const themeLabel = document.getElementById("themeLabel");
+  const menuButton = document.getElementById("menuToggle");
+  const navLinks = document.getElementById("navLinks");
+
+  function applyTheme(theme) {
+    root.dataset.theme = theme;
+    const isDark = theme === "dark";
+    themeIcon.textContent = isDark ? "☀" : "☾";
+    themeLabel.textContent = isDark ? "Light mode" : "Dark mode";
+    themeButton.setAttribute("aria-label", isDark ? "Switch to light mode" : "Switch to dark mode");
+    const themeColor = document.querySelector('meta[name="theme-color"]');
+    if (themeColor) themeColor.content = isDark ? "#111827" : "#f3f6fc";
+  }
+
+  let savedTheme = null;
+  try { savedTheme = localStorage.getItem("pixelshift-theme"); } catch (error) { /* Storage may be unavailable. */ }
+  applyTheme(savedTheme === "dark" || savedTheme === "light" ? savedTheme : "light");
+
+  themeButton.addEventListener("click", () => {
+    const nextTheme = root.dataset.theme === "dark" ? "light" : "dark";
+    applyTheme(nextTheme);
+    try { localStorage.setItem("pixelshift-theme", nextTheme); } catch (error) { /* Theme still works for this page. */ }
+  });
+
+  menuButton.addEventListener("click", () => {
+    const isOpen = navLinks.classList.toggle("open");
+    menuButton.setAttribute("aria-expanded", String(isOpen));
+    menuButton.setAttribute("aria-label", isOpen ? "Close navigation menu" : "Open navigation menu");
+    menuButton.textContent = isOpen ? "✕" : "☰";
+  });
+
+  navLinks.querySelectorAll("a").forEach(link => {
+    link.addEventListener("click", () => {
+      navLinks.classList.remove("open");
+      menuButton.setAttribute("aria-expanded", "false");
+      menuButton.setAttribute("aria-label", "Open navigation menu");
+      menuButton.textContent = "☰";
+    });
+  });
+
+  document.getElementById("year").textContent = new Date().getFullYear();
+})();
+</script>
+</body>
+</html>
